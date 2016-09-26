@@ -1,0 +1,12 @@
+
+
+*.exe
+
+*.fdb
+
+pkg/
+src/github.com/
+src/golang.org/
+log/
+
+templates__old/

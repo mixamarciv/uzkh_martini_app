@@ -1,0 +1,149 @@
+
+<!--
+<div class="jumbotron">
+
+  <h2><big>ЗАСТАВЬТЕ КОММУНАЛЬЩИКОВ РАБОТАТЬ!</big></h2>
+  <p><h2><b>Онлайн-сервис для помощи решения проблем c ЖКХ и борьбы с бездействием Управляющих компаний</b></h2></p>
+
+	<p><small>
+		<h2>
+			1) Укажите проблему <br>
+			2) Напишите заявление<br>
+			3) Контролируйте решение проблемы
+		</h2>
+	</small></p>
+	
+  <p><a class="btn btn-primary btn-lg" href="/newmessage">написать заявление</a></p>
+
+</div>
+-->
+
+
+	
+<script  type="text/javascript">
+jQuery( document ).ready(function() {
+	$('input[type=text]').tooltip({ placement: "top", trigger: "focus"	});
+	$('input[type=checkbox]').tooltip({ placement: "top", trigger: "hover"	});
+	$('#fileupload').click(function(){
+		alert(3000)		
+	});
+});
+</script>
+
+<form1 class="form-horizontal">
+  <fieldset>
+    <legend>Оформление заявления</legend>
+	
+	<div class="col-lg-5">
+		<legend>От кого</legend>
+	    <div class="form-group">
+	      <label for="fam" class="col-lg-2 control-label">Фамилия<b style="color:red;">*</b></label>
+	      <div class="col-lg-10">
+			<input name="fam" placeholder="Фамилия"
+			       id="fam" type="text" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
+	    <div class="form-group">
+	      <label for="name" class="col-lg-2 control-label">Имя<b style="color:red;">*</b></label>
+	      <div class="col-lg-10">
+			<input name="name" placeholder="Имя" 
+			       id="name" type="text" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
+	    <div class="form-group">
+	      <label for="pat" class="col-lg-2 control-label">Отчество</label>
+	      <div class="col-lg-10">
+			<input name="pat" placeholder="Отчество" 
+			       id="pat" type="text" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
+		
+	    <div class="form-group">
+	      <label for="email" class="col-lg-2 control-label">Email<b style="color:red;">*</b></label>
+	      <div class="col-lg-10">
+			<input name="email" placeholder="Email" title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы а также запрос на подтверждение заявления" 
+			       id="email" type="text" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
+		
+	    <div class="form-group">
+	      <label for="phone" class="col-lg-2 control-label">Телефон</label>
+	      <div class="col-lg-10">
+			<input name="phone" placeholder="телефон" title="может понадобиться для уточнения деталей (указывать не обязательно)" 
+			       id="phone" type="text" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
+	</div>
+	
+	<div class="col-lg-6">
+		<legend>Адрес</legend>
+
+	    <div class="form-group">
+	      <label for="street" class="col-lg-2 control-label">Улица</label>
+	      <div class="col-lg-10">
+			<input name="street" placeholder="Улица" 
+			       id="street" type="text" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
+		
+	    <div class="form-group">
+	      <label for="house" class="col-lg-2 control-label">Дом</label>
+	      <div class="col-lg-10">
+			<input name="house" placeholder="Дом" 
+			       id="house" type="text" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
+		
+	    <div class="form-group">
+	      <label for="flat" class="col-lg-2 control-label">Квартира</label>
+	      <div class="col-lg-10">
+			<input name="flat" placeholder="Квартира" title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы" 
+			       id="flat" type="text" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
+		
+	</div>
+	
+	<div class="container">
+	<div class="col-lg-1"></div>
+	<div class="col-lg-10">
+		<div class="form-group">
+		  <label class="control-label" for="posttext">Кратко опишите суть проблемы<b style="color:red;">*</b></label>
+		  <textarea class="form-control" rows="4" id="posttext"></textarea>
+		</div>
+		<div class="container">
+			<div class="col-lg-2">
+			  <button type="submit" class="btn" id=fileupload>загрузить фото</button><span style="display:none;">
+			    <input id=fileuploadctrl type="file" multiple="multiple" accept=".txt,image/*" class="btn"></span>
+			</div>
+			<div class="col-lg-10">
+			<input type="file" class='file_input' id='example_input'>
+			<div id="fileuploader"></div>
+			</div>
+		</div>
+		<div class="checkbox">
+		    <label>
+		        <input type="checkbox" name="hidepost" title="информация об обращении будет доступна только сотрудникам МКУ ''УЖКХ''" 
+				       id="hidepost" data-toggle="tooltip"> не публиковать эту информацию на сайте
+		    </label>
+		</div>
+	</div>
+	</div>
+	
+	
+
+	<br>
+	<div class="form-group">
+	  <div class="col-lg-10 col-lg-offset-2">
+	    <button type="submit" class="btn btn-primary btn-lg">отправить заявление</button>
+	  </div>
+	</div>
+  </fieldset>
+</form1>
+
+
+
+
+
+
+
