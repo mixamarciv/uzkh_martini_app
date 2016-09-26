@@ -25,14 +25,40 @@ jQuery( document ).ready(function() {
 	$('input[type=text]').tooltip({ placement: "top", trigger: "focus"	});
 	$('input[type=checkbox]').tooltip({ placement: "top", trigger: "hover"	});
 	$('#fileupload').click(function(){
-		alert(3000)		
+		document.getElementById('fileuploadctrl').click();
 	});
+	$('#fileuploadctrl').change(function(){
+		obj = $('#fileuploadctrl');
+		
+	    var fd = new FormData;
+		
+	    fd.append('file', obj.prop('files')[0]);
+		fd.append('path', obj.val());
+		fd.append('time', $('#time').val());
+		fd.append('uuid', $('#uuid').val());
+		
+	    $.ajax({
+	        type: 'POST',
+	        url: '/uploadfile',
+	        data: fd,
+	        processData: false,
+	        contentType: false,
+	        success: function (data) {
+	            alert(data);
+	        }
+	    });
+		
+		alert(fd);
+	})
 });
 </script>
 
 <form1 class="form-horizontal">
   <fieldset>
     <legend>Оформление заявления</legend>
+	
+	<input type=hidden id="uuid" value="{{.uuid}}" />
+	<input type=hidden id="time" value="{{.time}}" />
 	
 	<div class="col-lg-5">
 		<legend>От кого</legend>
@@ -113,12 +139,10 @@ jQuery( document ).ready(function() {
 		</div>
 		<div class="container">
 			<div class="col-lg-2">
-			  <button type="submit" class="btn" id=fileupload>загрузить фото</button><span style="display:none;">
-			    <input id=fileuploadctrl type="file" multiple="multiple" accept=".txt,image/*" class="btn"></span>
+			  <button type="submit" class="btn" id=fileupload>загрузить фото</button>
+			  <span style="display:block;"><input id=fileuploadctrl type="file" multiple="multiple" accept=".txt,image/*" class="btn"></span>
 			</div>
-			<div class="col-lg-10">
-			<input type="file" class='file_input' id='example_input'>
-			<div id="fileuploader"></div>
+			<div class="col-lg-10" id=filesinfo>
 			</div>
 		</div>
 		<div class="checkbox">

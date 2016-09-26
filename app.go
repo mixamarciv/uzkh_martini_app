@@ -2,16 +2,17 @@ package main
 
 import (
 	"log"
-	"mime/multipart"
 
 	"github.com/codegangsta/martini-contrib/render"
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/binding"
 	"github.com/martini-contrib/sessions"
 
+	"html/template"
 	"strconv"
+
+	//mf "github.com/mixamarciv/gofncstd3000"
 )
-import "html/template"
 
 func init() {
 	InitLog()
@@ -71,26 +72,8 @@ func main() {
 		r.HTML(200, "about", map[string]interface{}{"cnt": 0})
 	})
 
-	m.Get("/newmessage", func(r render.Render, session sessions.Session) {
-		r.HTML(200, "newmessage", map[string]interface{}{"cnt": 0})
-	})
-	//--- fileupload  -----------------------------------------------------
-	/*
-				type UploadForm struct {
-				    Title      string                `form:"title"`
-				    TextUpload *multipart.FileHeader `form:"txtUpload"`
-				}
-	    **/
-	type UploadForm struct {
-		Title      string                `form:"title"`
-		TextUpload *multipart.FileHeader `form:"txtUpload"`
-	}
-	m.Post("/uploadfile", binding.MultipartForm(UploadForm{}), func(uf UploadForm) string {
-		//file, err := uf.TextUpload.Open()
-		// ... you can now read the uploaded file
-		return ""
-	})
-	/***/
+	m.Get("/newmessage", newmessage)
+	m.Post("/uploadfile", binding.MultipartForm(UploadForm{}), uploadfile)
 	//--- /fileupload -----------------------------------------------------
 
 	m.RunOnAddr(":8091")

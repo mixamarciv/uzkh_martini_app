@@ -6,7 +6,7 @@ CALL "%~dp0/set_path.bat"
 ::@pause
 
 @echo === install ===================================================================
-
+go get "github.com/nfnt/resize"
 go get "github.com/go-martini/martini"
 go get "github.com/martini-contrib/auth"
 go get "github.com/martini-contrib/binding"
