@@ -1,38 +1,22 @@
-
-<!--
-<div class="jumbotron">
-
-  <h2><big>ЗАСТАВЬТЕ КОММУНАЛЬЩИКОВ РАБОТАТЬ!</big></h2>
-  <p><h2><b>Онлайн-сервис для помощи решения проблем c ЖКХ и борьбы с бездействием Управляющих компаний</b></h2></p>
-
-	<p><small>
-		<h2>
-			1) Укажите проблему <br>
-			2) Напишите заявление<br>
-			3) Контролируйте решение проблемы
-		</h2>
-	</small></p>
-	
-  <p><a class="btn btn-primary btn-lg" href="/newmessage">написать заявление</a></p>
-
-</div>
--->
-
-
 	
 <script  type="text/javascript">
+var imagesuploaded = []
 jQuery( document ).ready(function() {
-	$('input[type=text]').tooltip({ placement: "top", trigger: "focus"	});
-	$('input[type=checkbox]').tooltip({ placement: "top", trigger: "hover"	});
+	$('input[type=text]').tooltip({ placement: "top", trigger: "focus" });
+	$('input[type=checkbox]').tooltip({ placement: "top", trigger: "focus" });
+	
 	$('#fileupload').click(function(){
 		document.getElementById('fileuploadctrl').click();
 	});
+	
 	$('#fileuploadctrl').change(function(){
 		obj = $('#fileuploadctrl');
 		
 	    var fd = new FormData;
 		
-	    fd.append('file', obj.prop('files')[0]);
+		for(i=0;i<obj.prop('files').length;i++){
+			fd.append('file', obj.prop('files')[i]);
+		}
 		fd.append('path', obj.val());
 		fd.append('time', $('#time').val());
 		fd.append('uuid', $('#uuid').val());
@@ -43,12 +27,99 @@ jQuery( document ).ready(function() {
 	        data: fd,
 	        processData: false,
 	        contentType: false,
-	        success: function (data) {
-	            alert(data);
+	        success: function (dataall) {
+				//alert(dataall)
+				//return
+				dataall = JSON.parse(dataall);
+				if(dataall['error']){
+					s = `	
+							<div class="panel panel-default col-md-4" style="margin:2px;padding:2px;">
+							  <div class="panel-body errorinfo" style="color:red;font-weight:bold;">
+								`+dataall['error']+`
+							  </div>
+							</div>
+						`
+					$('#resultinfo').html(s)
+					return
+				}
+				
+				for(i=0;i<dataall["cnt"];i++){
+					data = dataall[i]
+					//alert(data)
+					n = imagesuploaded.length
+					imagesuploaded[n] = data
+					s = `	
+							<div class="panel panel-default col-md-3" style="margin:2px;padding:2px;">
+							  <div class="panel-body">
+							    <center>
+									<a href="`+data['path']+`" title="" data-gallery>
+									<img src="`+data['pathmin']+`" style="margin:4px;padding:4px;"/>
+									</a>
+								</center>
+								<input placeholder="укажите описание файла" title="" type="text" data-toggle="tooltip" class="form-control imagenxname" filen=`+n+` />
+							  </div>
+							</div>
+						`
+					$('#filesinfo').append(s)
+				}
 	        }
 	    });
 		
-		alert(fd);
+		//alert(fd);
+	})
+	
+	$('#sendpost').click(function(){
+	    var fd = new FormData;
+	    fd.append('hidepost', $('#hidepost').val());
+		fd.append('hideuser', 0);
+		fd.append('fam', $('#fam').val());
+		fd.append('name', $('#name').val());
+		fd.append('pat', $('#pat').val());
+		fd.append('email', $('#email').val());
+		fd.append('phone', $('#phone').val());
+		fd.append('street', $('#street').val());
+		fd.append('house', $('#house').val());
+		fd.append('flat', $('#flat').val());
+		fd.append('posttext', $('#posttext').val());
+		
+		$(".imagenxname").each(function(){
+			var obj = $( this )
+			var i = obj.attr("filen")
+			imagesuploaded[i]['text'] = obj.val()
+		})
+		
+		fd.append('imagesuploaded', JSON.stringify(imagesuploaded));
+		
+		
+		alert(JSON.stringify(imagesuploaded))
+		
+	    $.ajax({
+	        type: 'POST',
+	        url: '/newmessagesend',
+	        data: fd,
+	        processData: false,
+	        contentType: false,
+	        success: function (data) {
+				data = JSON.parse(data);
+				if(data['error']){
+					s = `	
+						<div class="alert alert-dismissible alert-danger">
+						  <button type="button" class="close" data-dismiss="alert">&times;</button>
+						  `+data['error']+`
+						</div>
+						`
+					$('#resultinfo').html(s)
+					return
+				}
+				imagesuploaded[imagesuploaded.length] = data
+				s = `	
+					<div class="alert alert-dismissible alert-success">
+					  <button type="button" class="close" data-dismiss="alert">&times;</button>`+data['info']+`
+					</div>
+					`
+				$('#resultinfo').html(s)
+	        }
+	    });
 	})
 });
 </script>
@@ -56,74 +127,75 @@ jQuery( document ).ready(function() {
 <form1 class="form-horizontal">
   <fieldset>
     <legend>Оформление заявления</legend>
+	<div class="col-md-11 col-md-offset-1"><b style="color:red;">*</b> - поля обязательные для заполнения</div>
 	
 	<input type=hidden id="uuid" value="{{.uuid}}" />
 	<input type=hidden id="time" value="{{.time}}" />
 	
-	<div class="col-lg-5">
+	<div class="col-md-5">
 		<legend>От кого</legend>
 	    <div class="form-group">
-	      <label for="fam" class="col-lg-2 control-label">Фамилия<b style="color:red;">*</b></label>
-	      <div class="col-lg-10">
+	      <label for="fam" class="col-md-2 control-label">Фамилия<b style="color:red;">*</b></label>
+	      <div class="col-md-10">
 			<input name="fam" placeholder="Фамилия"
 			       id="fam" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 	    <div class="form-group">
-	      <label for="name" class="col-lg-2 control-label">Имя<b style="color:red;">*</b></label>
-	      <div class="col-lg-10">
+	      <label for="name" class="col-md-2 control-label">Имя<b style="color:red;">*</b></label>
+	      <div class="col-md-10">
 			<input name="name" placeholder="Имя" 
 			       id="name" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 	    <div class="form-group">
-	      <label for="pat" class="col-lg-2 control-label">Отчество</label>
-	      <div class="col-lg-10">
+	      <label for="pat" class="col-md-2 control-label">Отчество</label>
+	      <div class="col-md-10">
 			<input name="pat" placeholder="Отчество" 
 			       id="pat" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 		
 	    <div class="form-group">
-	      <label for="email" class="col-lg-2 control-label">Email<b style="color:red;">*</b></label>
-	      <div class="col-lg-10">
-			<input name="email" placeholder="Email" title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы а также запрос на подтверждение заявления" 
+	      <label for="email" class="col-md-2 control-label">Email<b style="color:red;">*</b></label>
+	      <div class="col-md-10">
+			<input name="email" placeholder="Email" title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы а также запрос на подтверждение заявления (email не будет опубликована на сайте)" 
 			       id="email" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 		
 	    <div class="form-group">
-	      <label for="phone" class="col-lg-2 control-label">Телефон</label>
-	      <div class="col-lg-10">
-			<input name="phone" placeholder="телефон" title="может понадобиться для уточнения деталей (указывать не обязательно)" 
+	      <label for="phone" class="col-md-2 control-label">Телефон</label>
+	      <div class="col-md-10">
+			<input name="phone" placeholder="телефон" title="может понадобиться для уточнения деталей (указывать не обязательно, не будет опубликован на сайте)" 
 			       id="phone" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 	</div>
 	
-	<div class="col-lg-6">
+	<div class="col-md-6">
 		<legend>Адрес</legend>
 
 	    <div class="form-group">
-	      <label for="street" class="col-lg-2 control-label">Улица</label>
-	      <div class="col-lg-10">
+	      <label for="street" class="col-md-2 control-label">Улица</label>
+	      <div class="col-md-10">
 			<input name="street" placeholder="Улица" 
 			       id="street" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 		
 	    <div class="form-group">
-	      <label for="house" class="col-lg-2 control-label">Дом</label>
-	      <div class="col-lg-10">
+	      <label for="house" class="col-md-2 control-label">Дом</label>
+	      <div class="col-md-10">
 			<input name="house" placeholder="Дом" 
 			       id="house" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 		
 	    <div class="form-group">
-	      <label for="flat" class="col-lg-2 control-label">Квартира</label>
-	      <div class="col-lg-10">
-			<input name="flat" placeholder="Квартира" title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы" 
+	      <label for="flat" class="col-md-2 control-label">Квартира</label>
+	      <div class="col-md-10">
+			<input name="flat" placeholder="Квартира" title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы (эта информация не будет опубликована на сайте)" 
 			       id="flat" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -131,35 +203,35 @@ jQuery( document ).ready(function() {
 	</div>
 	
 	<div class="container">
-	<div class="col-lg-1"></div>
-	<div class="col-lg-10">
+	<div class="col-md-1"></div>
+	<div class="col-md-10">
 		<div class="form-group">
 		  <label class="control-label" for="posttext">Кратко опишите суть проблемы<b style="color:red;">*</b></label>
 		  <textarea class="form-control" rows="4" id="posttext"></textarea>
 		</div>
 		<div class="container">
-			<div class="col-lg-2">
+			<div class="col-md-2">
 			  <button type="submit" class="btn" id=fileupload>загрузить фото</button>
-			  <span style="display:block;"><input id=fileuploadctrl type="file" multiple="multiple" accept=".txt,image/*" class="btn"></span>
+			  <span style="display:none;"><input id=fileuploadctrl type="file" multiple="multiple" accept="image/jpeg,image/jpg" class="btn"></span>
 			</div>
-			<div class="col-lg-10" id=filesinfo>
+			<div class="col-md-10" id=filesinfo>
 			</div>
 		</div>
 		<div class="checkbox">
 		    <label>
 		        <input type="checkbox" name="hidepost" title="информация об обращении будет доступна только сотрудникам МКУ ''УЖКХ''" 
-				       id="hidepost" data-toggle="tooltip"> не публиковать эту информацию на сайте
+				       id="hidepost" data-toggle="tooltip"> не публиковать это заявление на сайте
 		    </label>
 		</div>
 	</div>
 	</div>
 	
-	
-
 	<br>
+	<div class="col-md-8 col-md-offset-1" id=resultinfo>
+	</div>
 	<div class="form-group">
-	  <div class="col-lg-10 col-lg-offset-2">
-	    <button type="submit" class="btn btn-primary btn-lg">отправить заявление</button>
+	  <div class="col-md-10 col-md-offset-2">
+	    <button type="submit" class="btn btn-primary btn-lg" id='sendpost'>отправить заявление</button>
 	  </div>
 	</div>
   </fieldset>

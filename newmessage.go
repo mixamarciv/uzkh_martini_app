@@ -3,9 +3,12 @@ package main
 import (
 	"image"
 	"image/jpeg"
+	"io/ioutil"
 	"log"
 	"mime/multipart"
+	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/codegangsta/martini-contrib/render"
 	"github.com/martini-contrib/sessions"
@@ -18,7 +21,7 @@ import (
 )
 
 var maxImageSize = 1280
-var minImageSize = 100
+var minImageSize = 160
 
 func newmessage(r render.Render, session sessions.Session) {
 	var m = map[string]interface{}{"cnt": 0}
@@ -28,135 +31,142 @@ func newmessage(r render.Render, session sessions.Session) {
 }
 
 type UploadForm struct {
-	Uuid string                `form:"uuid"`
-	Time string                `form:"time"`
-	Path string                `form:"path"`
-	File *multipart.FileHeader `form:"file"`
+	Uuid string                  `form:"uuid"`
+	Time string                  `form:"time"`
+	Path string                  `form:"path"`
+	File []*multipart.FileHeader `form:"file"`
 }
 
 func uploadfile(uf UploadForm) string {
-	file, err := uf.File.Open()
-	log.Printf("ERR1: %#v", err)
-	log.Printf("uuid: %#v", uf.Uuid)
-	log.Printf("time: %#v", uf.Time)
-	log.Printf("Path: %#v", uf.Path)
-	log.Printf("File: %#v", file)
 
-	//-------------------------------
-	t := uf.Time
-	ipath := mf.AppPath2()
-	ipath = ipath + "/public/upload/" + t[0:4] + "/" + t[4:6] + "/" + t[6:8] + "/" + t + "_" + uf.Uuid
+	retall := map[string]interface{}{"cnt": len(uf.File)}
 
-	mf.MkdirAll(ipath)
+	for i := 0; i < len(uf.File); i++ {
 
-	ifilename := mf.StrUuid()
-	ifilepath := ipath + "/" + ifilename + filepath.Ext(uf.Path)
-	ifilepath_min := ipath + "/" + ifilename + "_min" + filepath.Ext(uf.Path)
-	//-------------------------------
+		file, err := uf.File[i].Open()
 
-	im, _, err := image.DecodeConfig(file)
-	LogPrintErrAndExit("ERROR image.DecodeConfig", err)
+		/**************************
+		log.Printf("ERR1: %#v", err)
+		log.Printf("uuid: %#v", uf.Uuid)
+		log.Printf("time: %#v", uf.Time)
+		log.Printf("Path: %#v", uf.Path)
+		log.Printf("File: %#v", file)
+		***************************/
 
-	_, err = file.Seek(0, 0)
-	LogPrintErrAndExit("ERROR file.Seek1", err)
+		t := uf.Time
+		apppath := mf.AppPath2() + "/public"
+		crc32uuidstr := mf.StrCrc32([]byte(uf.Uuid))
+		ipath := /*apppath +*/ "/upload/" + t[0:4] + "/" + t[4:6] + "/" + t[6:8] + "/" + t[9:15] + "_" + crc32uuidstr
 
-	iwidth := im.Width
-	iheight := im.Height
-	if iwidth > iheight && iwidth > maxImageSize {
-		iwidth = maxImageSize
-		iheight = 0
-	} else if iheight > iwidth && iheight > maxImageSize {
-		iheight = maxImageSize
-		iwidth = 0
-	}
+		mf.MkdirAll(apppath + ipath)
 
-	img, err := jpeg.Decode(file)
-	LogPrintErrAndExit("ERROR jpeg.Decode", err)
+		ifilename := mf.StrCrc32([]byte(mf.StrUuid()))
+		{
+			b, err := ioutil.ReadAll(file)
+			LogPrintErrAndExit("ERROR ioutil.ReadAll", err)
+			ifilename = mf.StrCrc32(b)
+			_, err = file.Seek(0, 0)
+			LogPrintErrAndExit("ERROR file.Seek0", err)
+		}
 
-	m := resize.Resize(uint(iwidth), uint(iheight), img, resize.Lanczos3)
+		ifilepath := ipath + "/" + ifilename + filepath.Ext(uf.Path)
+		ifilepath_min := ipath + "/" + ifilename + "_min" + filepath.Ext(uf.Path)
+		//-------------------------------
 
-	out, err := os.Create(ifilepath)
-	LogPrintErrAndExit("ERROR os.Create", err)
+		im, _, err := image.DecodeConfig(file)
+		if err != nil {
+			return "{\"error\":\"ОШИБКА к загрузке доступны только фото формата JPEG\"}"
+		}
+		LogPrintErrAndExit("ERROR image.DecodeConfig", err)
 
-	jpeg.Encode(out, m, nil)
-	defer out.Close()
+		_, err = file.Seek(0, 0)
+		LogPrintErrAndExit("ERROR file.Seek1", err)
 
-	//-- min image ---------------
-	iwidth = im.Width
-	iheight = im.Height
-	minimize := 0
-	if iwidth > iheight && iwidth > minImageSize {
-		iwidth = minImageSize
-		iheight = 0
-		minimize = 1
-	} else if iheight > iwidth && iheight > minImageSize {
-		iheight = minImageSize
-		iwidth = 0
-		minimize = 1
-	}
+		iwidth := im.Width
+		iheight := im.Height
+		if iwidth >= iheight && iwidth > maxImageSize {
+			iwidth = maxImageSize
+			iheight = 0
+		} else if iheight >= iwidth && iheight > maxImageSize {
+			iheight = maxImageSize
+			iwidth = 0
+		}
 
-	log.Printf("minimize: %#v", minimize)
+		img, err := jpeg.Decode(file)
+		LogPrintErrAndExit("ERROR jpeg.Decode", err)
 
-	if minimize == 1 {
-		//_, err = file.Seek(0, 0)
-		//LogPrintErrAndExit("ERROR file.Seek1", err)
-
-		//img, err := jpeg.Decode(file)
-		//LogPrintErrAndExit("ERROR jpeg.Decode", err)
 		m := resize.Resize(uint(iwidth), uint(iheight), img, resize.Lanczos3)
 
-		out, err := os.Create(ifilepath_min)
+		out, err := os.Create(apppath + ifilepath)
 		LogPrintErrAndExit("ERROR os.Create", err)
+
+		jpeg.Encode(out, m, nil)
 		defer out.Close()
 
-		// write new image to file
-		jpeg.Encode(out, m, nil)
+		//-- min image ---------------
+		iwidth = im.Width
+		iheight = im.Height
+		minimize := 0
+		if iwidth >= iheight && iwidth > minImageSize {
+			iwidth = minImageSize
+			iheight = 0
+			minimize = 1
+		} else if iheight >= iwidth && iheight > minImageSize {
+			iheight = minImageSize
+			iwidth = 0
+			minimize = 1
+		}
+
+		log.Printf("minimize: %#v, %d / %d", minimize, iwidth, iheight)
+
+		if minimize == 1 {
+			//_, err = file.Seek(0, 0)
+			//LogPrintErrAndExit("ERROR file.Seek1", err)
+
+			//img, err := jpeg.Decode(file)
+			//LogPrintErrAndExit("ERROR jpeg.Decode", err)
+			m := resize.Resize(uint(iwidth), uint(iheight), img, resize.Lanczos3)
+
+			out, err := os.Create(apppath + ifilepath_min)
+			LogPrintErrAndExit("ERROR os.Create", err)
+			defer out.Close()
+
+			// write new image to file
+			jpeg.Encode(out, m, nil)
+		} else {
+			ifilepath_min = ifilepath
+		}
+
+		ret := map[string]interface{}{"path": ifilepath, "pathmin": ifilepath_min}
+		retall[strconv.Itoa(i)] = ret
+
 	}
 
-	/**************
-	var d []byte = make([]byte, 1024*1024)
-	size, err := file.Read(d)
+	retstr := mf.ToJsonStr(retall)
 
-	log.Printf("ERR2: %#v", err)
-	log.Printf("size: %#v", size)
+	return retstr
+}
 
-	t := uf.Time
-	ipath := mf.AppPath2()
-	log.Printf("ERR3: %#v", err)
-	ipath = ipath + "/public/upload/" + t[0:4] + "/" + t[4:6] + "/" + t[6:8] + "/" + t + "_" + uf.Uuid
+func newmessagesend(req *http.Request, session sessions.Session) string {
+	var m = map[string]interface{}{"cnt": 0}
 
-	mf.MkdirAll(ipath)
+	m["fam"] = req.PostFormValue("fam")
+	m["name"] = req.PostFormValue("name")
+	m["pat"] = req.PostFormValue("pat")
+	m["email"] = req.PostFormValue("email")
+	m["phone"] = req.PostFormValue("phone")
+	m["street"] = req.PostFormValue("street")
+	m["house"] = req.PostFormValue("house")
+	m["flat"] = req.PostFormValue("flat")
+	m["posttext"] = req.PostFormValue("posttext")
+	m["fam"] = req.PostFormValue("fam")
+	m["fam"] = req.PostFormValue("fam")
+	m["fam"] = req.PostFormValue("fam")
 
-	ifilename := mf.StrUuid()
-	ifilepath := ipath + "/" + ifilename + filepath.Ext(uf.Path)
-	ifilepath_min := ipath + "/" + ifilename + "_min" + filepath.Ext(uf.Path)
-	mf.FileWrite(ifilepath, d)
+	log.Println(m["fam"])
 
-	//--- resize -------------------------------------------------------------
-	{
-		file, err := os.Open(ifilepath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		img, err := jpeg.Decode(file)
-		if err != nil {
-			log.Fatal(err)
-		}
-		file.Close()
+	m["info"] = interface{}(string("ваше заявление успешно отправлено, информация о рассмотрении прийдет вам на " + m["email"].(string)))
 
-		// resize to width 320 using Lanczos resampling and preserve aspect ratio
-		m := resize.Resize(320, 0, img, resize.Lanczos3)
-
-		out, err := os.Create(ifilepath_min)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer out.Close()
-
-		// write new image to file
-		jpeg.Encode(out, m, nil)
-	}
-	//--- /resize ------------------------------------------------------------
-	****************/
-	return ipath
+	retstr := mf.ToJsonStr(m)
+	return retstr
 }
