@@ -147,8 +147,32 @@ func uploadfile(uf UploadForm) string {
 	return retstr
 }
 
-func newmessagesend(req *http.Request, session sessions.Session) string {
+type test_struct struct {
+	Test string
+}
+
+func newmessagesend(req *http.Request /*, session sessions.Session*/) string {
 	var m = map[string]interface{}{"cnt": 0}
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		m["error"] = "ОШИБКА разбора параметров0: " + mf.ErrStr(err)
+		return mf.ToJsonStr(m)
+	}
+	log.Println(string(body))
+	return string(body)
+
+	/********/
+	err = req.ParseMultipartForm(15485760)
+	if err != nil {
+		m["error"] = "ОШИБКА разбора параметров1: " + mf.ErrStr(err)
+		return mf.ToJsonStr(m)
+	}
+	/********/
+	//err = req.ParseForm()
+	if err != nil {
+		m["error"] = "ОШИБКА разбора параметров2: " + mf.ErrStr(err)
+		return mf.ToJsonStr(m)
+	}
 
 	m["fam"] = req.PostFormValue("fam")
 	m["name"] = req.PostFormValue("name")
@@ -159,14 +183,12 @@ func newmessagesend(req *http.Request, session sessions.Session) string {
 	m["house"] = req.PostFormValue("house")
 	m["flat"] = req.PostFormValue("flat")
 	m["posttext"] = req.PostFormValue("posttext")
-	m["fam"] = req.PostFormValue("fam")
-	m["fam"] = req.PostFormValue("fam")
-	m["fam"] = req.PostFormValue("fam")
 
 	log.Println(m["fam"])
 
 	m["info"] = interface{}(string("ваше заявление успешно отправлено, информация о рассмотрении прийдет вам на " + m["email"].(string)))
 
 	retstr := mf.ToJsonStr(m)
+	log.Println(retstr)
 	return retstr
 }

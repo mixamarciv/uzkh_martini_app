@@ -7,11 +7,14 @@ CALL "%~dp0/set_path.bat"
 
 @echo === install ===================================================================
 
+go get -u "github.com/nfnt/resize"
 go get -u "github.com/go-martini/martini"
 go get -u "github.com/martini-contrib/auth"
 go get -u "github.com/martini-contrib/binding"
 go get -u "github.com/martini-contrib/sessions"
 go get -u "github.com/codegangsta/martini-contrib/render"
+go get -u "github.com/mixamarciv/gofncstd3000"
+go get -u "github.com/nakagami/firebirdsql"
 
 go install
 
