@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/jpeg"
 	"io/ioutil"
@@ -23,11 +24,67 @@ import (
 var maxImageSize = 1280
 var minImageSize = 160
 
+func GetSessStr(session sessions.Session, varname, defaultval string) string {
+	v := session.Get(varname)
+	if v == nil {
+		return defaultval
+	}
+	return v.(string)
+}
+
+func SetSessStr(session sessions.Session, varname, val string) {
+	session.Set(varname, val)
+}
+
+func GetSessJson(session sessions.Session, varname, defaultval string) map[string]interface{} {
+	v := session.Get(varname)
+	if v == nil {
+		j, err := mf.FromJson([]byte(defaultval))
+		if err == nil {
+			return j
+		}
+		m := map[string]interface{}{"error": mf.ErrStr(err)}
+		return m
+	}
+	j, err := mf.FromJson([]byte(v.(string)))
+	if err == nil {
+		return j
+	}
+	m := map[string]interface{}{"error": mf.ErrStr(err)}
+	return m
+}
+
+func SetSessJson(session sessions.Session, varname string, val map[string]interface{}) {
+	session.Set(varname, mf.ToJsonStr(val))
+}
+
 func newmessage(r render.Render, session sessions.Session) {
 	var m = map[string]interface{}{"cnt": 0}
-	m["uuid"] = mf.StrUuid()
-	m["time"] = mf.CurTimeStrShort()
+
+	post := GetSessJson(session, "post", "{}")
+	if _, ok := post["uuid"]; !ok {
+		post["uuid"] = mf.StrUuid()
+		post["time"] = mf.CurTimeStrShort()
+		SetSessJson(session, "post", post)
+	}
+	m["user"] = GetSessJson(session, "user", "{}")
+	m["post"] = post
+
+	if imgs, ok := post["imagesuploaded"]; ok {
+		post["imagesuploaded_jsonstr"] = mf.ToJsonStr(imgs)
+	}
 	r.HTML(200, "newmessage", m)
+}
+
+func newmessagesavesession(req *http.Request, session sessions.Session) string {
+	var m = map[string]interface{}{"cnt": 0}
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		m["error"] = "ОШИБКА загрузки параметров: " + mf.ErrStr(err)
+		return mf.ToJsonStr(m)
+	}
+	SetSessStr(session, "post", string(body))
+	return "{\"success\":1}"
 }
 
 type UploadForm struct {
@@ -54,6 +111,9 @@ func uploadfile(uf UploadForm) string {
 		***************************/
 
 		t := uf.Time
+		if len(t) < 15 || len(uf.Uuid) < 36 {
+			return "{\"error\":\"ОШИБКА формата загрузки файлов (" + fmt.Sprintf("%d/15; %d/36", len(t), len(uf.Uuid)) + ")\"}"
+		}
 		apppath := mf.AppPath2() + "/public"
 		crc32uuidstr := mf.StrCrc32([]byte(uf.Uuid))
 		ipath := /*apppath +*/ "/upload/" + t[0:4] + "/" + t[4:6] + "/" + t[6:8] + "/" + t[9:15] + "_" + crc32uuidstr
@@ -120,18 +180,10 @@ func uploadfile(uf UploadForm) string {
 		log.Printf("minimize: %#v, %d / %d", minimize, iwidth, iheight)
 
 		if minimize == 1 {
-			//_, err = file.Seek(0, 0)
-			//LogPrintErrAndExit("ERROR file.Seek1", err)
-
-			//img, err := jpeg.Decode(file)
-			//LogPrintErrAndExit("ERROR jpeg.Decode", err)
 			m := resize.Resize(uint(iwidth), uint(iheight), img, resize.Lanczos3)
-
 			out, err := os.Create(apppath + ifilepath_min)
 			LogPrintErrAndExit("ERROR os.Create", err)
 			defer out.Close()
-
-			// write new image to file
 			jpeg.Encode(out, m, nil)
 		} else {
 			ifilepath_min = ifilepath
@@ -139,7 +191,6 @@ func uploadfile(uf UploadForm) string {
 
 		ret := map[string]interface{}{"path": ifilepath, "pathmin": ifilepath_min}
 		retall[strconv.Itoa(i)] = ret
-
 	}
 
 	retstr := mf.ToJsonStr(retall)
@@ -147,27 +198,32 @@ func uploadfile(uf UploadForm) string {
 	return retstr
 }
 
-type test_struct struct {
-	Test string
-}
-
-func newmessagesend(req *http.Request /*, session sessions.Session*/) string {
+func newmessagesend(req *http.Request, session sessions.Session) string {
 	var m = map[string]interface{}{"cnt": 0}
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		m["error"] = "ОШИБКА разбора параметров0: " + mf.ErrStr(err)
+		m["error"] = "ОШИБКА загрузки параметров: " + mf.ErrStr(err)
 		return mf.ToJsonStr(m)
 	}
 	log.Println(string(body))
-	return string(body)
 
-	/********/
+	js, err := mf.FromJson(body)
+	if err != nil {
+		m["error"] = "ОШИБКА разбора параметров: " + mf.ErrStr(err)
+		return mf.ToJsonStr(m)
+	}
+
+	js["info"] = interface{}(string("ваше заявление успешно отправлено, информация о рассмотрении прийдет вам на " + js["email"].(string)))
+
+	retstr := mf.ToJsonStr(js)
+	return retstr
+	/********
 	err = req.ParseMultipartForm(15485760)
 	if err != nil {
 		m["error"] = "ОШИБКА разбора параметров1: " + mf.ErrStr(err)
 		return mf.ToJsonStr(m)
 	}
-	/********/
+
 	//err = req.ParseForm()
 	if err != nil {
 		m["error"] = "ОШИБКА разбора параметров2: " + mf.ErrStr(err)
@@ -190,5 +246,6 @@ func newmessagesend(req *http.Request /*, session sessions.Session*/) string {
 
 	retstr := mf.ToJsonStr(m)
 	log.Println(retstr)
+	********/
 	return retstr
 }

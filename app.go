@@ -73,6 +73,7 @@ func main() {
 	})
 
 	m.Get("/newmessage", newmessage)
+	m.Post("/newmessagesavesession", newmessagesavesession)
 	m.Post("/newmessagesend", newmessagesend)
 	m.Post("/uploadfile", binding.MultipartForm(UploadForm{}), uploadfile)
 	//--- /fileupload -----------------------------------------------------
