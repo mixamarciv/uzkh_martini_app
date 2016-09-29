@@ -11,13 +11,15 @@ CREATE TABLE tuser (
     house         VARCHAR(20),
     flat          VARCHAR(20),
     info          VARCHAR(5000),
-    regdate       VARCHAR(40),
+    upddate       VARCHAR(20),
+    regdate       VARCHAR(20),
     regdatet      TIMESTAMP,
     isactive      INTEGER,
-    activecode    VARCHAR(36)
+    activecode    VARCHAR(36),
+    istemp        INTEGER
 );
-CREATE UNIQUE INDEX tuser_IDX1 ON tuser (uuid);
-CREATE        INDEX tuser_IDX2 ON tuser (email);
+CREATE UNIQUE INDEX tuser_IDX1 ON tuser (uuid,istemp);
+CREATE UNIQUE INDEX tuser_IDX2 ON tuser (email);
 
 
 CREATE TABLE tpost (
@@ -27,15 +29,17 @@ CREATE TABLE tpost (
     ishide        INTEGER,
     ishideuser    INTEGER,
     type          VARCHAR(200),
-    name          VARCHAR(500),
-    text 	  VARCHAR(2000),
+    userdata      VARCHAR(7000),
+    text 	  VARCHAR(7000),
     data          BLOB,
-    postdate      VARCHAR(40),
-    postdatet     TIMESTAMP
+    upddate       VARCHAR(20),
+    postdate      VARCHAR(20),
+    postdatet     TIMESTAMP,
+    isactive      INTEGER   
 );
 CREATE UNIQUE INDEX tpost_IDX1 ON tpost (uuid);
 CREATE        INDEX tpost_IDX2 ON tpost (uuid_user);
-CREATE        INDEX tpost_IDX3 ON tpost (postdate,uuid_parent);
+CREATE        INDEX tpost_IDX3 ON tpost (postdate,uuid_parent,isactive);
 
 
 CREATE TABLE timage (
@@ -43,7 +47,8 @@ CREATE TABLE timage (
     uuid          VARCHAR(36),
     hash          VARCHAR(200),
     title         VARCHAR(2000),
-    path 	  VARCHAR(2000),
+    path 	  VARCHAR(200),
+    pathmin	  VARCHAR(200),
     imgdate       VARCHAR(40),
     imgdatet      TIMESTAMP
 );
