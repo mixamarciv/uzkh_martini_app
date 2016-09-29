@@ -3,17 +3,21 @@ CREATE TABLE tuser (
     type          INTEGER,      -- 0 - admin, 10 - spec, 100 - user  
     fam           VARCHAR(200),
     name          VARCHAR(200),
-    otch 	  VARCHAR(200),
-    mail          VARCHAR(200),
+    pat 	  VARCHAR(200),
+    email         VARCHAR(200),
     phone         VARCHAR(20),
     pass          VARCHAR(100),
     street        VARCHAR(200),
     house         VARCHAR(20),
     flat          VARCHAR(20),
-    info          VARCHAR(2000)
+    info          VARCHAR(5000),
+    regdate       VARCHAR(40),
+    regdatet      TIMESTAMP,
+    isactive      INTEGER,
+    activecode    VARCHAR(36)
 );
 CREATE UNIQUE INDEX tuser_IDX1 ON tuser (uuid);
-CREATE        INDEX tuser_IDX2 ON tuser (mail);
+CREATE        INDEX tuser_IDX2 ON tuser (email);
 
 
 CREATE TABLE tpost (

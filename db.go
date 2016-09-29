@@ -26,7 +26,7 @@ func InitDb() {
 	db.SetMaxOpenConns(200)
 	db.SetMaxIdleConns(100)
 
-	query := `SELECT CAST(COUNT(*) AS VARCHAR(100)) FROM tpost `
+	query := `SELECT 'пользователи: '||(SELECT COUNT(*) FROM tuser)||'; сообщения: '||(SELECT COUNT(*) FROM tpost) FROM rdb$database`
 	rows, err := db.Query(query)
 	LogPrintErrAndExit("db.Query error: \n"+query+"\n\n", err)
 	rows.Next()

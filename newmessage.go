@@ -18,6 +18,8 @@ import (
 
 	mf "github.com/mixamarciv/gofncstd3000"
 
+	"math/rand"
+
 	"github.com/nfnt/resize"
 )
 
@@ -200,6 +202,7 @@ func uploadfile(uf UploadForm) string {
 
 func newmessagesend(req *http.Request, session sessions.Session) string {
 	var m = map[string]interface{}{"cnt": 0}
+
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		m["error"] = "ОШИБКА загрузки параметров: " + mf.ErrStr(err)
@@ -212,9 +215,12 @@ func newmessagesend(req *http.Request, session sessions.Session) string {
 		m["error"] = "ОШИБКА разбора параметров: " + mf.ErrStr(err)
 		return mf.ToJsonStr(m)
 	}
+	js["info"] = interface{}(string(""))
 
-	js["info"] = interface{}(string("ваше заявление успешно отправлено, информация о рассмотрении прийдет вам на " + js["email"].(string)))
+	check_and_register_user_in_sess_and_db(js, session)
 
+	//SetSessStr(session, "post", string("")) //затираем данные сессии, что бы пользователь дважды не создал один и тот же пост
+	js["info"] = interface{}(string("Спасибо, ваше заявление успешно отправлено, информация о рассмотрении прийдет вам на " + js["email"].(string) + "<br>\n" + js["info"].(string)))
 	retstr := mf.ToJsonStr(js)
 	return retstr
 	/********
@@ -247,5 +253,71 @@ func newmessagesend(req *http.Request, session sessions.Session) string {
 	retstr := mf.ToJsonStr(m)
 	log.Println(retstr)
 	********/
-	return retstr
+}
+
+// проверяем наличие и если надо регистрируем нового пользователя в бд
+func check_and_register_user_in_sess_and_db(js map[string]interface{}, session sessions.Session) {
+	user := GetSessJson(session, "user", "{}")
+	if _, ok := user["uuid"]; !ok { //если пользователь не авторизован
+		register_new_user_in_sess_and_db(js, session)
+	} else if sess_email, ok := user["email"]; !ok || sess_email.(string) != js["email"].(string) {
+		SetSessJson(session, "user", map[string]interface{}{})
+		register_new_user_in_sess_and_db(js, session)
+	} else {
+		update_user_in_sess_and_db(js, session)
+	}
+}
+
+func register_new_user_in_sess_and_db(js map[string]interface{}, session sessions.Session) {
+	var u = map[string]interface{}{}
+	u["uuid"] = mf.StrUuid()
+	u["fam"] = js["fam"]
+	u["name"] = js["name"]
+	u["pat"] = js["pat"]
+	u["email"] = js["email"]
+	u["phone"] = js["phone"]
+	u["street"] = js["street"]
+	u["house"] = js["house"]
+	u["flat"] = js["flat"]
+
+	var n int
+	{
+		query := "SELECT COUNT(*) FROM tuser WHERE email=?"
+		stmt, err := db.Prepare(query)
+		LogPrintErrAndExit("ERROR db.Prepare: \n"+query+"\n\n", err)
+		email := u["email"].(string)
+		err = stmt.QueryRow(email).Scan(&n)
+		LogPrintErrAndExit("ERROR stmt.QueryRow(email).Scan(&n): \n"+query+"\n\n", err)
+	}
+	if n == 0 { //если такой email не существует, то создаем нового пользователя
+		u["pass"] = genPassword(6, 10)
+		u["regdate"] = mf.CurTimeStrShort()
+
+		activecode := mf.StrUuid()
+
+		query := "INSERT INTO tuser(uuid,type,fam,name,pat,email,phone,pass,street,house,flat,info,regdate,regdatet,isactive,activecode) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,0,?)"
+		_, err := db.Exec(query, u["uuid"], 0, u["fam"], u["name"], u["pat"], u["email"], u["phone"], u["pass"], u["street"], u["house"], u["flat"], "{}", u["regdate"], activecode)
+		LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
+
+		js["emailsend"] = interface{}(string("Для активации вашего аккаунта пройдите по ссылке /actusercode/" + activecode))
+
+		SetSessJson(session, "user", u)
+		return
+	}
+	update_user_in_sess_and_db(js, session)
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+func genPassword(minlen, maxlen int) string {
+	n := minlen + rand.Intn(maxlen-minlen)
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+func update_user_in_sess_and_db(js map[string]interface{}, session sessions.Session) {
+
 }

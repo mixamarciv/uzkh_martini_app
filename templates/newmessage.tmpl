@@ -6,6 +6,7 @@ jQuery( document ).ready(function() {
 	$('input[type=checkbox]').tooltip({ placement: "top", trigger: "focus" });
 	
 	$('#fileupload').click(function(){
+		$('#fileuploadctrl').val('')
 		document.getElementById('fileuploadctrl').click();
 	});
 	
@@ -83,10 +84,12 @@ jQuery( document ).ready(function() {
 				}
 				s = `	
 					<div class="alert alert-dismissible alert-success">
-					  <button type="button" class="close" data-dismiss="alert">&times;</button>`+data1['info']+`
+					  `+data1['info']+`
 					</div>
 					`
 				$('#resultinfo').html(s)
+				$('#fieldset1').hide()
+				$('#fieldset2').find('#sendpost').hide()
 	        }
 	    });
 	})
@@ -133,6 +136,9 @@ function update_session_postdata(needsave){
 
 //добавляет блок загруженной картинки с подписью для редактирования пользователем
 function show_userimage(data){
+	if(!data) return;
+	if(!data['path']) return;	
+	if(!data['pathmin']) return;
 	//alert(data)
 	n = imagesuploaded.length
 	imagesuploaded[n] = data
@@ -221,7 +227,7 @@ function show_user_errors(aerr){
 </script>
 
 <form1 class="form-horizontal userpostdata">
-  <fieldset>
+  <fieldset id=fieldset1>
     <legend>Оформление заявления</legend>
 	<div class="col-md-11 col-md-offset-1"><b style="color:red;">*</b> - поля обязательные для заполнения</div>
 	
@@ -302,35 +308,37 @@ function show_user_errors(aerr){
 	</div>
 	
 	<div class="container">
-	<div class="col-md-1"></div>
-	<div class="col-md-10">
-		<div class="form-group">
-		  <label class="control-label" for="posttext">Кратко опишите суть проблемы<b style="color:red;">*</b></label>
-		  <textarea class="form-control" rows="4" id="posttext">{{.post.posttext}}</textarea>
-		</div>
-		<div class="container">
-			<div class="col-md-12">
-			  <span style="display:none;"><input id=fileuploadctrl type="file" multiple="multiple" accept="image/jpeg,image/jpg" class="btn"></span>
-			  <div id=filesinfo></div>
+		<div class="col-md-1"></div>
+		<div class="col-md-10">
+			<div class="form-group">
+			  <label class="control-label" for="posttext">Кратко опишите суть проблемы<b style="color:red;">*</b></label>
+			  <textarea class="form-control" rows="4" id="posttext">{{.post.posttext}}</textarea>
+			</div>
+			<div class="container">
+				<div class="col-md-12">
+				  <span style="display:none;"><input id=fileuploadctrl type="file" multiple="multiple" accept="image/jpeg,image/jpg" class="btn"></span>
+				  <div id=filesinfo></div>
+				</div>
+			</div>
+			<div class="container">
+				<div class="col-md-12">
+				  <button type="submit" class="btn" id=fileupload>загрузить фото</button>
+				</div>
+			</div>
+			
+			
+			<div class="checkbox" style="display:none;">
+			    <label>
+			        <input type="checkbox" name="hidepost" title="информация о заявлении будет доступна только сотрудникам МКУ ''УЖКХ''" 
+					       id="hidepost" data-toggle="tooltip"> не публиковать это заявление на сайте
+			    </label>
 			</div>
 		</div>
-		<div class="container">
-			<div class="col-md-12">
-			  <button type="submit" class="btn" id=fileupload>загрузить фото</button>
-			</div>
-		</div>
-		
-		
-		<div class="checkbox" style="display:none;">
-		    <label>
-		        <input type="checkbox" name="hidepost" title="информация о заявлении будет доступна только сотрудникам МКУ ''УЖКХ''" 
-				       id="hidepost" data-toggle="tooltip"> не публиковать это заявление на сайте
-		    </label>
-		</div>
-	</div>
 	</div>
 	
 	<br>
+  </fieldset>
+  <fieldset id=fieldset2>
 	<div class="col-md-8 col-md-offset-1" id=resultinfo>{{.post.imagesuploaded_jsonstr}}</div>
 
 	<div class="form-group">
