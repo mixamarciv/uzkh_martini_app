@@ -221,40 +221,23 @@ func newmessagesend(req *http.Request, session sessions.Session) string {
 
 	save_post_data(js)
 
+	{
+		msgi := js["emailsend_msg"]
+		if msgi != nil {
+			msg := msgi.(string)
+			if msg != "" && len(msg) > 0 {
+				mailto := js["email"].(string)
+				LogPrint("Отправляем письмо на " + mailto)
+				subject := js["emailsend_sbj"].(string)
+				SendMail(mailto, subject, msg)
+			}
+		}
+	}
+
 	SetSessStr(session, "post", string("")) //затираем данные сессии, что бы пользователь дважды не создал один и тот же пост
 	js["info"] = interface{}(string("Спасибо, ваше заявление успешно загружено, информация о рассмотрении будет направлена вам на " + js["email"].(string) + "<br>\n" + js["info"].(string)))
 	retstr := mf.ToJsonStr(js)
 	return retstr
-	/********
-	err = req.ParseMultipartForm(15485760)
-	if err != nil {
-		m["error"] = "ОШИБКА разбора параметров1: " + mf.ErrStr(err)
-		return mf.ToJsonStr(m)
-	}
-
-	//err = req.ParseForm()
-	if err != nil {
-		m["error"] = "ОШИБКА разбора параметров2: " + mf.ErrStr(err)
-		return mf.ToJsonStr(m)
-	}
-
-	m["fam"] = req.PostFormValue("fam")
-	m["name"] = req.PostFormValue("name")
-	m["pat"] = req.PostFormValue("pat")
-	m["email"] = req.PostFormValue("email")
-	m["phone"] = req.PostFormValue("phone")
-	m["street"] = req.PostFormValue("street")
-	m["house"] = req.PostFormValue("house")
-	m["flat"] = req.PostFormValue("flat")
-	m["posttext"] = req.PostFormValue("posttext")
-
-	log.Println(m["fam"])
-
-	m["info"] = interface{}(string("ваше заявление успешно отправлено, информация о рассмотрении прийдет вам на " + m["email"].(string)))
-
-	retstr := mf.ToJsonStr(m)
-	log.Println(retstr)
-	********/
 }
 
 func save_post_data(js map[string]interface{}) {
@@ -265,9 +248,9 @@ func save_post_data(js map[string]interface{}) {
 	_, err := db.Exec(query, u["uuid"], js["uuid"], mf.ToJsonStr(u), js["posttext"], mf.CurTimeStrShort(), js["time"])
 	LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 
-	log.Println("=============================================================")
 	imgs := js["imagesuploaded"].([]interface{})
-	for _, img := range imgs {
+	for _, imgi := range imgs {
+		img := imgi.(map[string]interface{})
 		//log.Printf("%#v\n", img)
 		query := "INSERT INTO timage(uuid_post,uuid,hash,title,path,pathmin,imgdate,imgdatet) "
 		query += "VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)"
@@ -325,17 +308,18 @@ func register_new_user_in_sess_and_db(js map[string]interface{}, session session
 		LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 
 		urlactiv := "http://" + sitedomain + "/activecode/" + activecode
-		msg := "Для публикации и отправки вашего сообщения " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + ": \n"
-		msg += "\"" + js["posttext"].(string) + "\"\n"
-		msg += "а так же для подтверждения email и активации вашей учетной записи на сайте " + sitedomain + "\n"
-		msg += "пройдите по ссылке <a href=\"" + urlactiv + "\">" + urlactiv + "</a>\n\n"
-		msg += "В дальнейшем для входа на сайт " + sitedomain + " вы можете использовать следующий\n"
-		msg += "логин: " + u["email"].(string) + "\n"
-		msg += "пароль: " + pass + "\n"
-		//msg += "\nесли вы не писали никаких сообщений то удалите это письмо\n"
-		msg += "\n--\nС Уважением Администрация сайта " + sitedomain + "\n"
+		msg := "Для публикации и отправки вашего сообщения от имени " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + ": <br>\n"
+		msg += "\"" + js["posttext"].(string) + "\"<br>\n"
+		msg += "а так же для подтверждения этого email и активации вашей учетной записи на сайте " + sitedomain + "<br>\n"
+		msg += "пройдите по ссылке <a href=\"" + urlactiv + "\">" + urlactiv + "</a><br><br>\n\n"
+		msg += "В дальнейшем для входа на сайт " + sitedomain + " вы можете использовать следующий<br>\n"
+		msg += "логин: " + u["email"].(string) + "<br>\n"
+		msg += "пароль: " + pass + "<br>\n"
+		//msg += "<br>\nесли вы не писали никаких сообщений то удалите это письмо<br>\n"
+		msg += "<br><br>\n--<br>\nС Уважением Администрация сайта " + sitedomain + "<br>\n"
 
-		js["emailsend"] = interface{}(msg)
+		js["emailsend_msg"] = interface{}(msg)
+		js["emailsend_sbj"] = interface{}(sitedomain + " запрос подтверждения email и отправки сообщения")
 		js["userdata"] = u
 
 		SetSessJson(session, "user", u)
@@ -347,23 +331,27 @@ func register_new_user_in_sess_and_db(js map[string]interface{}, session session
 	u["uuid"] = db_uuid_user
 	u["istemp"] = 1
 	activecode := mf.StrUuid()
-	query := "INSERT INTO tuser(upddate,uuid,type,fam,name,pat,email,phone,pass,street,house,flat,info,activecode,istemp) "
-	query += "VALUES(?,0,?,?,?,LOWER(?),?,?,?,?,?,?,1)"
+	query := "INSERT INTO tuser(upddate,uuid,type," +
+		+"fam,name,pat,"+
+		+"email,phone,pass,"+
+		+"street,house,flat,info,activecode,istemp) "
+	query += "VALUES(?,?,0,"++"?,?,?,LOWER(?),?,?,?,?,?,?,?,COALESCE((SELECT MAX(t.istemp) FROM tuser t WHERE t.uuid=?),1))"
 	_, err := db.Exec(query, mf.CurTimeStrShort(), u["uuid"], u["fam"], u["name"], u["pat"], u["email"], u["phone"], db_pass,
-		u["street"], u["house"], u["flat"], "{}", activecode)
+		u["street"], u["house"], u["flat"], "{}", activecode, u["uuid"])
 	LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 
 	urlactiv := "http://" + sitedomain + "/activecode/" + activecode
-	msg := "Для публикации и отправки вашего сообщения от имени " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + ": \n"
-	msg += "\"" + js["posttext"].(string) + "\"\n"
-	msg += "пройдите по ссылке <a href=\"" + urlactiv + "\">" + urlactiv + "</a>\n\n"
-	msg += "Для входа на сайт " + sitedomain + " вы можете использовать ваши\n"
-	msg += "логин: " + u["email"].(string) + "\n"
-	msg += "пароль: " + db_pass + "\n"
-	msg += "\nесли вы не писали никаких сообщений то удалите это письмо\n"
-	msg += "\n--\nС Уважением Администрация сайта " + sitedomain + "\n"
+	msg := "Для публикации и отправки вашего сообщения от имени " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + ": <br>\n"
+	msg += "\"" + js["posttext"].(string) + "\"<br>\n"
+	msg += "пройдите по ссылке <a href=\"" + urlactiv + "\">" + urlactiv + "</a><br><br>\n\n"
+	msg += "Для входа на сайт " + sitedomain + " вы можете использовать ваши<br>\n"
+	msg += "логин: " + u["email"].(string) + "<br>\n"
+	msg += "пароль: " + db_pass + "<br>\n"
+	msg += "<br>\nесли вы не писали никаких сообщений то удалите это письмо<br>\n"
+	msg += "<br><br>\n\n--<br>\nС Уважением Администрация сайта " + sitedomain + "<br>\n"
 
-	js["emailsend"] = interface{}(msg)
+	js["emailsend_msg"] = interface{}(msg)
+	js["emailsend_sbj"] = interface{}(sitedomain + " запрос подтверждения отправки сообщения")
 	js["userdata"] = u
 
 	SetSessJson(session, "user", u)

@@ -1,6 +1,7 @@
 	
 <script  type="text/javascript">
 var imagesuploaded = []
+var errcnt_500 = 0
 jQuery( document ).ready(function() {
 	$('input[type=text]').tooltip({ placement: "top", trigger: "focus" });
 	$('input[type=checkbox]').tooltip({ placement: "top", trigger: "focus" });
@@ -58,11 +59,22 @@ jQuery( document ).ready(function() {
 	
 	$('#sendpost').click(function(){
 		var aerr = []
-		if( /^[a-z0-9_-]+@[a-z]+[a-z0-9_]+\.[a-z0-9]{2,5}$/i.test($('#email').val().trim())==false ) aerr.push('обязательно укажите email, на него будут направлены уведомления о решении проблемы')
-		if( /[a-zа-я \n\r]{5,}/i.test($('#posttext').val().trim())==false ) aerr.push('напишите хотя бы несколько слов о проблеме')
-		if( /^[a-zа-я ]{2,}$/i.test($('#fam').val().trim())==false ) aerr.push('укажите фамилию (не менее 2 букв)')
-		if( /^[a-zа-я ]{2,}$/i.test($('#name').val().trim())==false ) aerr.push('укажите имя (не менее 2 букв)')
 		
+		if( /^[a-z0-9_-]+@[a-z]+[a-z0-9_]+\.[a-z0-9]{2,5}$/i.test($('#email').val().trim())==false ) {
+			aerr.push('обязательно укажите email(<i>например vash@email.ru</i>), на него будут направлены уведомления о решении проблемы')
+		}
+		if( /^\+?[78][ -\(]?9[0-9- \)]{9,}$/i.test($('#phone').val().trim())==false ) {
+			aerr.push('обязательно укажите ваш мобильный телефон(<i>только цифры</i>), он нужен для уточнения деталей и проверки на "фейковые"(ложные) заявления')
+		}
+		if( /[a-zа-я \n\r]{5,}/i.test($('#posttext').val().trim())==false ) {
+			aerr.push('напишите хотя бы несколько слов о проблеме')
+		}
+		if( /^[a-zа-я ]{2,}$/i.test($('#fam').val().trim())==false ) {
+			aerr.push('укажите фамилию (<i>не менее 2 букв</i>)')
+		}
+		if( /^[a-zа-я ]{2,}$/i.test($('#name').val().trim())==false ) {
+			aerr.push('укажите имя (<i>не менее 2 букв</i>)')
+		}
 		
 		if( aerr.length > 0 ){
 		    return show_user_errors(aerr)
@@ -72,10 +84,15 @@ jQuery( document ).ready(function() {
 		
 		jsondatastr = get_post_data_jsonstr()
 		
+		
+		$('#sendpost').prop( "disabled", true );
+		
 	    $.ajax({
 	        type: 'POST',
 	        url: '/newmessagesend',
 	        data: jsondatastr,
+			temp: 0 
+			/*************
 	        success: function (data1) {
 				alert(data1)
 				data1 = JSON.parse(data1);
@@ -90,8 +107,52 @@ jQuery( document ).ready(function() {
 				$('#resultinfo').html(s)
 				$('#fieldset1').hide()
 				$('#fieldset2').find('#sendpost').hide()
-	        }
-	    });
+	        },
+			statusCode: {
+    			500: function() {
+					errcnt_500++;
+					var msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос немного позже"
+					if(errcnt_500>=3) {
+					    msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос позже или напишите администратору сайта mixamarciv@gmail.com"
+					}
+					s = `	
+						<div class="alert alert-dismissible alert-danger">
+						  `+msg+`
+						</div>
+						`
+					$('#resultinfo').html(s)
+    			}
+  			}
+			*************/
+	    }).always(function() {
+		  		$('#sendpost').prop( "disabled", false );
+		}).done(function(data1) {
+				alert(data1)
+				data1 = JSON.parse(data1);
+				if(data1['error']){
+					return show_user_error(data1['error'])
+				}
+				s = `	
+					<div class="alert alert-dismissible alert-success">
+					  `+data1['info']+`
+					</div>
+					`
+				$('#resultinfo').html(s)
+				$('#fieldset1').hide()
+				$('#fieldset2').find('#sendpost').hide()
+		}).fail(function() {
+				errcnt_500++;
+				var msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос немного позже"
+				if(errcnt_500>=3) {
+				    msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос позже или напишите администратору сайта mixamarciv@gmail.com"
+				}
+				s = `	
+					<div class="alert alert-dismissible alert-danger">
+					  `+msg+`
+					</div>
+					`
+				$('#resultinfo').html(s)
+		})
 	})
 	
 	$('.userpostdata').find('input[type=text]').change(update_session_postdata)
@@ -112,6 +173,7 @@ window.savesession_postdata = 0  // флаг сохранения текущей
 window.savesession_cnt = 0
 window.savesession_wait = 0
 function update_session_postdata(needsave){
+	var stimeout = 3000
 	if(window.savesession_postdata==0 || needsave==1){
 		window.savesession_wait = 0;
 		window.savesession_postdata = 1;
@@ -123,13 +185,13 @@ function update_session_postdata(needsave){
 		    success: function (data1) {
 				window.savesession_cnt += 1;
 				//$('#resultinfo').html("update "+window.savesession_cnt)
-				setTimeout(function(){window.savesession_postdata = 0;},1000)
+				setTimeout(function(){window.savesession_postdata = 0;},stimeout)
 		    }
 		});
 	}else{
 		if(window.savesession_wait == 0){
 			window.savesession_wait = 1
-			setTimeout(update_session_postdata,1000)
+			setTimeout(update_session_postdata,stimeout)
 		}
 	}
 }
@@ -239,21 +301,21 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="fam" class="col-md-2 control-label">Фамилия<b style="color:red;">*</b></label>
 	      <div class="col-md-10">
-			<input name="fam" placeholder="Фамилия" value="{{.post.fam}}"
+			<input name="fam" placeholder="Фамилия" value="{{if .post.fam}}{{.post.fam}}{{else}}{{.user.fam}}{{end}}"
 			       id="fam" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 	    <div class="form-group">
 	      <label for="name" class="col-md-2 control-label">Имя<b style="color:red;">*</b></label>
 	      <div class="col-md-10">
-			<input name="name" placeholder="Имя" value="{{.post.name}}"
+			<input name="name" placeholder="Имя" value="{{if .post.name}}{{.post.name}}{{else}}{{.user.name}}{{end}}"
 			       id="name" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 	    <div class="form-group">
 	      <label for="pat" class="col-md-2 control-label">Отчество</label>
 	      <div class="col-md-10">
-			<input name="pat" placeholder="Отчество" value="{{.post.pat}}"
+			<input name="pat" placeholder="Отчество" value="{{if .post.pat}}{{.post.pat}}{{else}}{{.user.pat}}{{end}}"
 			       id="pat" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -261,17 +323,17 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="email" class="col-md-2 control-label">Email<b style="color:red;">*</b></label>
 	      <div class="col-md-10">
-			<input name="email" placeholder="Email"  value="{{.post.email}}"
+			<input name="email" placeholder="Email"  value="{{if .post.email}}{{.post.email}}{{else}}{{.user.email}}{{end}}"
 				   title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы а также запрос на подтверждение заявления (email не будет опубликована на сайте)" 
 			       id="email" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 		
 	    <div class="form-group">
-	      <label for="phone" class="col-md-2 control-label">Телефон</label>
+	      <label for="phone" class="col-md-2 control-label">Телефон<b style="color:red;">*</b></label>
 	      <div class="col-md-10">
-			<input name="phone" placeholder="телефон" value="{{.post.phone}}" 
-				   title="может понадобиться для уточнения деталей (указывать не обязательно, не будет опубликован на сайте)" 
+			<input name="phone" placeholder="телефон" value="{{if .post.phone}}{{.post.phone}}{{else}}{{.user.phone}}{{end}}" 
+				   title="может понадобиться для уточнения деталей (указывать обязательно, телефон будет доступен только сотрудникам МКУ ''УЖКХ'')" 
 			       id="phone" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -283,7 +345,7 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="street" class="col-md-2 control-label">Улица</label>
 	      <div class="col-md-10">
-			<input name="street" placeholder="Улица" value="{{.post.street}}" 
+			<input name="street" placeholder="Улица" value="{{if .post.street}}{{.post.street}}{{else}}{{.user.street}}{{end}}" 
 			       id="street" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -291,7 +353,7 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="house" class="col-md-2 control-label">Дом</label>
 	      <div class="col-md-10">
-			<input name="house" placeholder="Дом" value="{{.post.house}}"
+			<input name="house" placeholder="Дом" value="{{if .post.house}}{{.post.house}}{{else}}{{.user.house}}{{end}}"
 			       id="house" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -299,7 +361,7 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="flat" class="col-md-2 control-label">Квартира</label>
 	      <div class="col-md-10">
-			<input name="flat" placeholder="Квартира" value="{{.post.flat}}"
+			<input name="flat" placeholder="Квартира" value="{{if .post.flat}}{{.post.flat}}{{else}}{{.user.flat}}{{end}}"
 				   title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы (эта информация не будет опубликована на сайте)" 
 			       id="flat" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>

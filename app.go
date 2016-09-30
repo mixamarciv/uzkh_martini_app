@@ -19,6 +19,7 @@ var sitedomain string = "192.168.1.120:8091"
 func init() {
 	InitLog()
 	InitDb()
+	initSendMail()
 }
 
 func main() {

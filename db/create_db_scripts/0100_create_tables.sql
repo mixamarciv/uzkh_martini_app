@@ -19,7 +19,7 @@ CREATE TABLE tuser (
     istemp        INTEGER
 );
 CREATE UNIQUE INDEX tuser_IDX1 ON tuser (uuid,istemp);
-CREATE UNIQUE INDEX tuser_IDX2 ON tuser (email);
+CREATE UNIQUE INDEX tuser_IDX2 ON tuser (email,istemp);
 
 
 CREATE TABLE tpost (
