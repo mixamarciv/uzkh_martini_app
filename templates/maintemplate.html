@@ -30,12 +30,12 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="/">сервис решения проблем в ЖКХ</a>
+      <a class="navbar-brand" href="/">Cервис решения проблем в ЖКХ</a>
     </div>
 
     <div class="navbar-collapse collapse in" id="bs-example-navbar-collapse-1" aria-expanded="true">
       <form class="navbar-form navbar-left" role="btn">
-        <a href="/newmessage" class="btn btn-default">сообщить о проблеме</a>
+        <a href="/messagenew" class="btn btn-default">сообщить о проблеме</a>
       </form>
 	
 	  <!--
@@ -47,6 +47,7 @@
       </form>
 	  -->
       <ul class="nav navbar-nav navbar-right">
+		<li><a href="/messagelist/">список заявлений</a></li>
 		<li><a href="/about">о сервисе</a></li>
         <li><a href="/user">{{if .user.fam}}{{.user.name}} {{.user.pat}} {{.user.fam}}{{else}}авторизация{{end}}</a></li>
       </ul>
@@ -64,14 +65,14 @@
 <footer class="footer">
   <br>
   <div class="container">
-	<div class="col-md-9">
-        <p class="text-muted">
-			<a class="mailto" href="mailto:uzkhinta@gmail.com">написать администратору</a>
-		</p>
-	</div>
 	<div class="col-md-3 text-muted">
 			МКУ "УЖКХ" <br>
 			город Инта 2016
+	</div>
+	<div class="col-md-3 col-md-offset-6">
+        <p class="text-muted">
+			<a class="mailto" href="mailto:uzkhinta@gmail.com">написать администратору</a>
+		</p>
 	</div>
   </div>
 </footer>

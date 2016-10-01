@@ -60,7 +60,7 @@ func SetSessJson(session sessions.Session, varname string, val map[string]interf
 	session.Set(varname, mf.ToJsonStr(val))
 }
 
-func newmessage(r render.Render, session sessions.Session) {
+func http_get_newmessage(r render.Render, session sessions.Session) {
 	var m = map[string]interface{}{"cnt": 0}
 
 	post := GetSessJson(session, "post", "{}")
@@ -75,10 +75,10 @@ func newmessage(r render.Render, session sessions.Session) {
 	if imgs, ok := post["imagesuploaded"]; ok {
 		post["imagesuploaded_jsonstr"] = mf.ToJsonStr(imgs)
 	}
-	r.HTML(200, "newmessage", m)
+	r.HTML(200, "messagenew", m)
 }
 
-func newmessagesavesession(req *http.Request, session sessions.Session) string {
+func http_post_newmessagesavesession(req *http.Request, session sessions.Session) string {
 	var m = map[string]interface{}{"cnt": 0}
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -89,6 +89,70 @@ func newmessagesavesession(req *http.Request, session sessions.Session) string {
 	return "{\"success\":1}"
 }
 
+/************
+//активация аккаунта пользователя
+func http_get_activecode(params martini.Params, session sessions.Session, r render.Render) {
+	activecode := params["activecode"]
+	LogPrint("activecode: " + activecode)
+	var u = map[string]interface{}{}
+	{
+		var uuid, fam, name, pat, email, phone, street, house, flat, info string
+		var utype, isactive, istemp int
+
+		query := "SELECT uuid,type,fam,name,pat,email,phone,street,house,flat,info,isactive,istemp FROM tuser WHERE activecode=?"
+		stmt, err := db.Prepare(query)
+		LogPrintErrAndExit("ERROR db.Prepare: \n"+query+"\n\n", err)
+		err = stmt.QueryRow(activecode).Scan(&uuid, &utype, &fam, &name, &pat, &email, &phone, &street, &house, &flat, &info, &isactive, &istemp)
+		if err == sql.ErrNoRows {
+			var js = map[string]interface{}{}
+			js["error"] = string("не верная ссылка для активации учетной записи")
+			r.HTML(200, "user_activate", js)
+			return
+		}
+		LogPrintErrAndExit("ERROR stmt.QueryRow(activecode).Scan(...): \n"+query+"\n\n", err)
+
+		u["uuid"] = uuid
+		u["type"] = utype
+		u["email"] = email
+		u["fam"] = fam
+		u["name"] = name
+		u["pat"] = pat
+		u["phone"] = phone
+		u["street"] = street
+		u["house"] = house
+		u["flat"] = flat
+		u["isactive"] = isactive
+		u["istemp"] = istemp
+	}
+
+	//if u["isactive"].(int) > 0
+	{ //обновляем данные пользователя на те что он актвирует
+		query := "UPDATE tuser SET fam=?,name=?,pat=?,phone=?,street=?,house=?,flat=?,upddate=?,isactive=1 "
+		query += "WHERE email=LOWER(?) AND istemp=0"
+		_, err := db.Exec(query, u["fam"], u["name"], u["pat"], u["phone"], u["street"], u["house"], u["flat"], mf.CurTimeStrShort(), u["email"])
+		LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
+		u["isactive"] = 1
+	}
+
+	{ //обновляем сообщения которые он отправлял
+		query := "UPDATE tpost SET isactive=1 "
+		query += "WHERE uuid_user=? AND isactive=0"
+		_, err := db.Exec(query, u["uuid"])
+		LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
+	}
+
+	SetSessJson(session, "user", u)
+
+	var js = map[string]interface{}{}
+	js["user"] = u
+
+	msg := "Активация учетной записи " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) +
+		" прошла успешно.\n Все ваши сообщения опубликованы."
+	js["success"] = msg
+	r.HTML(200, "user_activate", js)
+}
+**************/
+
 type UploadForm struct {
 	Uuid string                  `form:"uuid"`
 	Time string                  `form:"time"`
@@ -96,7 +160,7 @@ type UploadForm struct {
 	File []*multipart.FileHeader `form:"file"`
 }
 
-func uploadfile(uf UploadForm) string {
+func http_post_uploadfile(uf UploadForm) string {
 
 	retall := map[string]interface{}{"cnt": len(uf.File)}
 
@@ -200,7 +264,7 @@ func uploadfile(uf UploadForm) string {
 	return retstr
 }
 
-func newmessagesend(req *http.Request, session sessions.Session) string {
+func http_post_newmessagesend(req *http.Request, session sessions.Session) string {
 	var m = map[string]interface{}{"cnt": 0}
 
 	body, err := ioutil.ReadAll(req.Body)
@@ -215,11 +279,23 @@ func newmessagesend(req *http.Request, session sessions.Session) string {
 		m["error"] = "ОШИБКА разбора параметров: " + mf.ErrStr(err)
 		return mf.ToJsonStr(m)
 	}
-	js["info"] = interface{}(string(""))
 
 	check_and_register_user_in_sess_and_db(js, session)
 
 	save_post_data(js)
+
+	u := js["userdata"].(map[string]interface{})
+	js["info"] = interface{}(string("Спасибо, ваше заявление успешно загружено, информация о рассмотрении будет направлена вам на " + js["email"].(string) + "<br>\n"))
+
+	isactiveuser := 1
+	if vi, okint := u["isactive"].(int); okint && vi == 0 {
+		isactiveuser = 0
+	} else if vf, okfloat64 := u["isactive"].(float64); okfloat64 && vf == 0 {
+		isactiveuser = 0
+	}
+	if isactiveuser == 0 {
+		js["info"] = interface{}(string("Спасибо, ваше заявление успешно загружено, для его публикации и рассмотрения подтвердите ваш email (пройдите по ссылке отправленной вам на " + js["email"].(string) + ")<br>\n"))
+	}
 
 	{
 		msgi := js["emailsend_msg"]
@@ -229,13 +305,12 @@ func newmessagesend(req *http.Request, session sessions.Session) string {
 				mailto := js["email"].(string)
 				LogPrint("Отправляем письмо на " + mailto)
 				subject := js["emailsend_sbj"].(string)
-				SendMail(mailto, subject, msg)
+				go SendMail(mailto, subject, msg)
 			}
 		}
 	}
 
 	SetSessStr(session, "post", string("")) //затираем данные сессии, что бы пользователь дважды не создал один и тот же пост
-	js["info"] = interface{}(string("Спасибо, ваше заявление успешно загружено, информация о рассмотрении будет направлена вам на " + js["email"].(string) + "<br>\n" + js["info"].(string)))
 	retstr := mf.ToJsonStr(js)
 	return retstr
 }
@@ -244,8 +319,8 @@ func save_post_data(js map[string]interface{}) {
 	u := js["userdata"].(map[string]interface{})
 	posttime := mf.CurTimeStrShort()
 	query := "INSERT INTO tpost(uuid_user,uuid,userdata,text,upddate,postdate,postdatet,isactive) "
-	query += "VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP,0)"
-	_, err := db.Exec(query, u["uuid"], js["uuid"], mf.ToJsonStr(u), js["posttext"], mf.CurTimeStrShort(), js["time"])
+	query += "VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP,?)"
+	_, err := db.Exec(query, u["uuid"], js["uuid"], mf.ToJsonStr(u), js["posttext"], mf.CurTimeStrShort(), js["time"], u["isactive"])
 	LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 
 	imgs := js["imagesuploaded"].([]interface{})
@@ -283,17 +358,17 @@ func register_new_user_in_sess_and_db(js map[string]interface{}, session session
 	u["street"] = js["street"]
 	u["house"] = js["house"]
 	u["flat"] = js["flat"]
-	u["istemp"] = 0
-	u["isactive"] = 0
+	u["istemp"] = int(0)
+	u["isactive"] = int(0)
 
-	var n int
+	var n, istemp int
 	var db_uuid_user, db_pass string
 	{
-		query := "SELECT COUNT(*),COALESCE(MAX(uuid),'-'),COALESCE(MAX(pass),'-') FROM tuser WHERE email=?"
+		query := "SELECT COUNT(*),COALESCE(MAX(uuid),'-'),COALESCE(MAX(pass),'-'),COALESCE(MAX(istemp)+1,1) FROM tuser WHERE email=?"
 		stmt, err := db.Prepare(query)
 		LogPrintErrAndExit("ERROR db.Prepare: \n"+query+"\n\n", err)
 		email := u["email"].(string)
-		err = stmt.QueryRow(email).Scan(&n, &db_uuid_user, &db_pass)
+		err = stmt.QueryRow(email).Scan(&n, &db_uuid_user, &db_pass, &istemp)
 		LogPrintErrAndExit("ERROR stmt.QueryRow(email).Scan(&n): \n"+query+"\n\n", err)
 	}
 	if n == 0 { //если такой email не существует, то создаем нового пользователя
@@ -307,10 +382,11 @@ func register_new_user_in_sess_and_db(js map[string]interface{}, session session
 		_, err := db.Exec(query, u["regdate"], u["uuid"], u["fam"], u["name"], u["pat"], u["email"], u["phone"], pass, u["street"], u["house"], u["flat"], "{}", u["regdate"], activecode)
 		LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 
-		urlactiv := "http://" + sitedomain + "/activecode/" + activecode
-		msg := "Для публикации и отправки вашего сообщения от имени " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + ": <br>\n"
+		urlactiv := "http://" + sitedomain + "/useractivecode/" + activecode
+		msg := "Для публикации и отправки вашего сообщения: <br>\n"
 		msg += "\"" + js["posttext"].(string) + "\"<br>\n"
-		msg += "а так же для подтверждения этого email и активации вашей учетной записи на сайте " + sitedomain + "<br>\n"
+		msg += "от имени " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + " <br>\n"
+		msg += "а так же для подтверждения этого email и активации вашей учетной записи<br>\n" //на сайте " + sitedomain + "
 		msg += "пройдите по ссылке <a href=\"" + urlactiv + "\">" + urlactiv + "</a><br><br>\n\n"
 		msg += "В дальнейшем для входа на сайт " + sitedomain + " вы можете использовать следующий<br>\n"
 		msg += "логин: " + u["email"].(string) + "<br>\n"
@@ -329,20 +405,30 @@ func register_new_user_in_sess_and_db(js map[string]interface{}, session session
 	//если email существует но пользователь не авторизован
 	//то сохраняем его новые данные во временную запись до того как он подтвердит свою учетную запись
 	u["uuid"] = db_uuid_user
-	u["istemp"] = 1
+	u["istemp"] = istemp
 	activecode := mf.StrUuid()
-	query := "INSERT INTO tuser(upddate,uuid,type," +
-		+"fam,name,pat,"+
-		+"email,phone,pass,"+
-		+"street,house,flat,info,activecode,istemp) "
-	query += "VALUES(?,?,0,"++"?,?,?,LOWER(?),?,?,?,?,?,?,?,COALESCE((SELECT MAX(t.istemp) FROM tuser t WHERE t.uuid=?),1))"
-	_, err := db.Exec(query, mf.CurTimeStrShort(), u["uuid"], u["fam"], u["name"], u["pat"], u["email"], u["phone"], db_pass,
-		u["street"], u["house"], u["flat"], "{}", activecode, u["uuid"])
+	query := "INSERT INTO tuser(upddate,uuid,type,"
+	query += "fam,name,pat,"
+	query += "email,phone,pass,"
+	query += "street,house,flat,"
+	query += "info,activecode,istemp) "
+	query += "VALUES(?,?,0," //upddate,uuid,type
+	query += "?,?,?,"        //fam,name,pat
+	query += "LOWER(?),?,?," //email,phone,pass
+	query += "?,?,?,"        //street,house,flat
+	query += "?,?,?)"        //info,activecode,istemp
+	_, err := db.Exec(query,
+		mf.CurTimeStrShort(), u["uuid"], //upddate,uuid,type
+		u["fam"], u["name"], u["pat"], //fam,name,pat
+		u["email"], u["phone"], db_pass, //email,phone,pass
+		u["street"], u["house"], u["flat"], //street,house,flat
+		"{}", activecode, u["istemp"]) //info,activecode,istemp
 	LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 
-	urlactiv := "http://" + sitedomain + "/activecode/" + activecode
-	msg := "Для публикации и отправки вашего сообщения от имени " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + ": <br>\n"
+	urlactiv := "http://" + sitedomain + "/useractivecode/" + activecode
+	msg := "Для публикации и отправки вашего сообщения: <br>\n"
 	msg += "\"" + js["posttext"].(string) + "\"<br>\n"
+	msg += "от имени " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + " <br>\n"
 	msg += "пройдите по ссылке <a href=\"" + urlactiv + "\">" + urlactiv + "</a><br><br>\n\n"
 	msg += "Для входа на сайт " + sitedomain + " вы можете использовать ваши<br>\n"
 	msg += "логин: " + u["email"].(string) + "<br>\n"

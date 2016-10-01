@@ -75,10 +75,19 @@ func main() {
 		r.HTML(200, "about", map[string]interface{}{"cnt": 0})
 	})
 
-	m.Get("/newmessage", newmessage)
-	m.Post("/newmessagesavesession", newmessagesavesession)
-	m.Post("/newmessagesend", newmessagesend)
-	m.Post("/uploadfile", binding.MultipartForm(UploadForm{}), uploadfile)
+	m.Get("/messagenew", http_get_newmessage)
+	m.Post("/newmessagesavesession", http_post_newmessagesavesession)
+	m.Post("/newmessagesend", http_post_newmessagesend)
+	m.Post("/uploadfile", binding.MultipartForm(UploadForm{}), http_post_uploadfile)
+
+	m.Get("/useractivecode/:activecode", http_get_useractivecode)
+	m.Get("/userlogin", http_get_userlogin)
+	m.Post("/userlogin", http_post_userlogin)
+	m.Get("/user", http_get_userform)
+	m.Get("/userform", http_get_userform)
+	m.Post("/userform", http_post_userform)
+
+	m.Get("/messagelist/:page", http_get_messagelist)
 	//--- /fileupload -----------------------------------------------------
 
 	m.RunOnAddr(":8091")

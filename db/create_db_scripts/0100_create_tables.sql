@@ -1,6 +1,6 @@
 CREATE TABLE tuser (
     uuid          VARCHAR(36),
-    type          INTEGER,      -- 0 - admin, 10 - spec, 100 - user  
+    type          INTEGER DEFAULT 0,      -- 100 - admin, 10 - spec, 0 - user  
     fam           VARCHAR(200),
     name          VARCHAR(200),
     pat 	  VARCHAR(200),
@@ -14,9 +14,9 @@ CREATE TABLE tuser (
     upddate       VARCHAR(20),
     regdate       VARCHAR(20),
     regdatet      TIMESTAMP,
-    isactive      INTEGER,
+    isactive      INTEGER DEFAULT 0,
     activecode    VARCHAR(36),
-    istemp        INTEGER
+    istemp        INTEGER DEFAULT 0
 );
 CREATE UNIQUE INDEX tuser_IDX1 ON tuser (uuid,istemp);
 CREATE UNIQUE INDEX tuser_IDX2 ON tuser (email,istemp);
@@ -26,16 +26,16 @@ CREATE TABLE tpost (
     uuid_user     VARCHAR(36),
     uuid          VARCHAR(36),
     uuid_parent   VARCHAR(36),
-    ishide        INTEGER,
-    ishideuser    INTEGER,
+    ishide        INTEGER DEFAULT 0,
+    ishideuser    INTEGER DEFAULT 0,
     type          VARCHAR(200),
     userdata      VARCHAR(7000),
     text 	  VARCHAR(7000),
     data          BLOB,
     upddate       VARCHAR(20),
     postdate      VARCHAR(20),
-    postdatet     TIMESTAMP,
-    isactive      INTEGER   
+    postdatet     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    isactive      INTEGER DEFAULT 0
 );
 CREATE UNIQUE INDEX tpost_IDX1 ON tpost (uuid);
 CREATE        INDEX tpost_IDX2 ON tpost (uuid_user);
