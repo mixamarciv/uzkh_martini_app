@@ -17,7 +17,7 @@ func InitDb() {
 	path, _ := mf.AppPath()
 	path = s.Replace(path, "\\", "/", -1) + "/db/DB1.FDB"
 	//path = "d/program/go/projects/test_martini_app/db/DB1.FDB"
-	dbopt := "sysdba:masterkey@127.0.0.1:3050/" + path
+	dbopt := "sysdba:" + db_pass + "@127.0.0.1:3050/" + path
 	var err error
 	db, err = sql.Open("firebirdsql", dbopt)
 	LogPrintErrAndExit("ошибка подключения к базе данных "+dbopt, err)
