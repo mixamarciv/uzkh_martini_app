@@ -305,7 +305,7 @@ func http_post_newmessagesend(req *http.Request, session sessions.Session) strin
 				mailto := js["email"].(string)
 				LogPrint("Отправляем письмо на " + mailto)
 				subject := js["emailsend_sbj"].(string)
-				go SendMail(mailto, subject, msg)
+				go SendMail(mailto, subject, msg, nil)
 			}
 		}
 	}
@@ -318,14 +318,17 @@ func http_post_newmessagesend(req *http.Request, session sessions.Session) strin
 func save_post_data(js map[string]interface{}) {
 	u := js["userdata"].(map[string]interface{})
 	posttime := mf.CurTimeStrShort()
-	query := "INSERT INTO tpost(uuid_user,uuid,userdata,text,upddate,postdate,postdatet,isactive) "
-	query += "VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP,?)"
-	_, err := db.Exec(query, u["uuid"], js["uuid"], mf.ToJsonStr(u), js["posttext"], mf.CurTimeStrShort(), js["time"], u["isactive"])
+	query := "INSERT INTO tpost(uuid_user,uuid,userdata,text,upddate,postdate,postdatet,isactive,activecode) "
+	query += "VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP,?,?)"
+	_, err := db.Exec(query, u["uuid"], js["uuid"], mf.ToJsonStr(u), js["posttext"], mf.CurTimeStrShort(), js["time"], u["isactive"], u["activecode"])
 	LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 
 	imgs := js["imagesuploaded"].([]interface{})
 	for _, imgi := range imgs {
-		img := imgi.(map[string]interface{})
+		img, ok := imgi.(map[string]interface{})
+		if !ok {
+			continue
+		}
 		//log.Printf("%#v\n", img)
 		query := "INSERT INTO timage(uuid_post,uuid,hash,title,path,pathmin,imgdate,imgdatet) "
 		query += "VALUES(?,?,?,?,?,?,?,CURRENT_TIMESTAMP)"
@@ -333,6 +336,7 @@ func save_post_data(js map[string]interface{}) {
 		LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 	}
 
+	SendMailNewPostsToWork()
 }
 
 // проверяем наличие и если надо регистрируем нового пользователя в бд
@@ -376,6 +380,7 @@ func register_new_user_in_sess_and_db(js map[string]interface{}, session session
 		u["regdate"] = mf.CurTimeStrShort()
 
 		activecode := mf.StrUuid()
+		u["activecode"] = activecode
 
 		query := "INSERT INTO tuser(upddate,uuid,type,fam,name,pat,email,phone,pass,street,house,flat,info,regdate,regdatet,isactive,activecode,istemp) "
 		query += "VALUES(?,?,0,?,?,?,LOWER(?),?,?,?,?,?,?,?,CURRENT_TIMESTAMP,0,?,0)"
@@ -407,6 +412,7 @@ func register_new_user_in_sess_and_db(js map[string]interface{}, session session
 	u["uuid"] = db_uuid_user
 	u["istemp"] = istemp
 	activecode := mf.StrUuid()
+	u["activecode"] = activecode
 	query := "INSERT INTO tuser(upddate,uuid,type,"
 	query += "fam,name,pat,"
 	query += "email,phone,pass,"

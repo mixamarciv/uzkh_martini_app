@@ -57,10 +57,12 @@ func http_get_useractivecode(params martini.Params, session sessions.Session, r 
 
 	{ //обновляем сообщения которые он отправлял
 		query := "UPDATE tpost SET isactive=1 "
-		query += "WHERE uuid_user=? AND isactive=0"
-		_, err := db.Exec(query, u["uuid"])
+		query += "WHERE uuid_user=? AND isactive=0 AND activecode=?"
+		_, err := db.Exec(query, u["uuid"], activecode)
 		LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 	}
+
+	SendMailNewPostsToWork()
 
 	SetSessJson(session, "user", u)
 
@@ -74,7 +76,9 @@ func http_get_useractivecode(params martini.Params, session sessions.Session, r 
 }
 
 func error503(session sessions.Session, r render.Render) {
-	js := GetSessJson(session, "user", "{}")
+	var js = map[string]interface{}{}
+	u := GetSessJson(session, "user", "{}")
+	js["user"] = u
 	r.HTML(200, "error503", js)
 }
 

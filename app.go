@@ -9,12 +9,11 @@ import (
 	"github.com/martini-contrib/sessions"
 
 	"html/template"
-	"strconv"
 
 	//mf "github.com/mixamarciv/gofncstd3000"
 )
 
-var sitedomain string = "192.168.1.120:8091"
+//var sitedomain string = "192.168.1.120:8091"
 
 func init() {
 	InitLog()
@@ -58,21 +57,17 @@ func main() {
 	//--- /render --------------------------------------------------------
 
 	m.Get("/", func(r render.Render, session sessions.Session) {
-		v := session.Get("cnt")
-		var a string
-		if v == nil {
-			a = "0"
-		} else {
-			a = v.(string)
-		}
-		cnt, err := strconv.Atoi(a)
-		LogPrintErrAndExit("strconv.Atoi(v) error: \n"+a+"\n\n", err)
-		session.Set("cnt", strconv.Itoa(cnt+1))
-		r.HTML(200, "main", map[string]interface{}{"hello": "world", "cnt": a})
+		var js = map[string]interface{}{}
+		u := GetSessJson(session, "user", "{}")
+		js["user"] = u
+		r.HTML(200, "main", js)
 	})
 
 	m.Get("/about", func(r render.Render, session sessions.Session) {
-		r.HTML(200, "about", map[string]interface{}{"cnt": 0})
+		var js = map[string]interface{}{}
+		u := GetSessJson(session, "user", "{}")
+		js["user"] = u
+		r.HTML(200, "about", js)
 	})
 
 	m.Get("/messagenew", http_get_newmessage)
@@ -87,7 +82,9 @@ func main() {
 	m.Get("/userform", http_get_userform)
 	m.Post("/userform", http_post_userform)
 
+	m.Get("/messagelist", http_get_messagelist)
 	m.Get("/messagelist/:page", http_get_messagelist)
+	m.Get("/messageview/:uuid", http_get_messageview)
 	//--- /fileupload -----------------------------------------------------
 
 	m.RunOnAddr(":8091")

@@ -8,8 +8,8 @@ CREATE TABLE tuser (
     phone         VARCHAR(20),
     pass          VARCHAR(100),
     street        VARCHAR(200),
-    house         VARCHAR(20),
-    flat          VARCHAR(20),
+    house         VARCHAR(200),
+    flat          VARCHAR(200),
     info          VARCHAR(5000),
     upddate       VARCHAR(20),
     regdate       VARCHAR(20),
@@ -35,12 +35,14 @@ CREATE TABLE tpost (
     upddate       VARCHAR(20),
     postdate      VARCHAR(20),
     postdatet     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    isactive      INTEGER DEFAULT 0
+    activecode    VARCHAR(36),
+    isactive      INTEGER DEFAULT 0,
+    isstartwork   INTEGER DEFAULT 0  
 );
 CREATE UNIQUE INDEX tpost_IDX1 ON tpost (uuid);
-CREATE        INDEX tpost_IDX2 ON tpost (uuid_user);
-CREATE        INDEX tpost_IDX3 ON tpost (postdate,uuid_parent,isactive);
-
+CREATE        INDEX tpost_IDX2 ON tpost (uuid_user,activecode);
+CREATE        INDEX tpost_IDX3 ON tpost (isactive,postdatet);
+CREATE        INDEX tpost_IDX4 ON tpost (isstartwork,postdatet);
 
 CREATE TABLE timage (
     uuid_post     VARCHAR(36),
