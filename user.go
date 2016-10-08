@@ -12,7 +12,7 @@ import (
 )
 
 //активация аккаунта пользователя
-func http_get_useractivecode(params martini.Params, session sessions.Session, r render.Render) {
+func http_get_useractivatecode(params martini.Params, session sessions.Session, r render.Render) {
 	activecode := params["activecode"]
 	LogPrint("activecode: " + activecode)
 	var u = map[string]interface{}{}

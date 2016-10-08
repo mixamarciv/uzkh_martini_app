@@ -294,7 +294,11 @@ func http_post_newmessagesend(req *http.Request, session sessions.Session) strin
 		isactiveuser = 0
 	}
 	if isactiveuser == 0 {
-		js["info"] = interface{}(string("Спасибо, ваше заявление успешно загружено, для его публикации и рассмотрения подтвердите ваш email (пройдите по ссылке отправленной вам на " + js["email"].(string) + ")<br>\n"))
+		js["info"] = interface{}(string("Спасибо, ваше заявление успешно загружено, для его публикации и рассмотрения подтвердите ваш email " +
+			" (пройдите по ссылке отправленной вам на " + js["email"].(string) + ")<br>\n"))
+		js["warning"] = interface{}(string("<b>Подтвердите ваш email: " + js["email"].(string) +
+			"</b> (пройдите по ссылке отправленной вам на " + js["email"].(string) +
+			")<br>\nбез подтверждения ваше заявление <b>не</b> будет публиковаться и рассматриваться."))
 	}
 
 	{
@@ -387,7 +391,7 @@ func register_new_user_in_sess_and_db(js map[string]interface{}, session session
 		_, err := db.Exec(query, u["regdate"], u["uuid"], u["fam"], u["name"], u["pat"], u["email"], u["phone"], pass, u["street"], u["house"], u["flat"], "{}", u["regdate"], activecode)
 		LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 
-		urlactiv := "http://" + sitedomain + "/useractivecode/" + activecode
+		urlactiv := "http://" + sitedomain + "/useractivatecode/" + activecode
 		msg := "Для публикации и отправки вашего сообщения: <br>\n"
 		msg += "\"" + js["posttext"].(string) + "\"<br>\n"
 		msg += "от имени " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + " <br>\n"
@@ -431,7 +435,7 @@ func register_new_user_in_sess_and_db(js map[string]interface{}, session session
 		"{}", activecode, u["istemp"]) //info,activecode,istemp
 	LogPrintErrAndExit("ERROR db.Exec: \n"+query+"\n\n", err)
 
-	urlactiv := "http://" + sitedomain + "/useractivecode/" + activecode
+	urlactiv := "http://" + sitedomain + "/useractivatecode/" + activecode
 	msg := "Для публикации и отправки вашего сообщения: <br>\n"
 	msg += "\"" + js["posttext"].(string) + "\"<br>\n"
 	msg += "от имени " + u["fam"].(string) + " " + u["name"].(string) + " " + u["pat"].(string) + " <br>\n"

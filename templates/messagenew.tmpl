@@ -34,13 +34,11 @@ jQuery( document ).ready(function() {
 				//return
 				dataall = JSON.parse(dataall);
 				if(dataall['error']){
-					s = `	
-							<div class="panel panel-default col-md-4" style="margin:2px;padding:2px;">
-							  <div class="panel-body errorinfo" style="color:red;font-weight:bold;">
-								`+dataall['error']+`
-							  </div>
-							</div>
-						`
+					s = '<div class="panel panel-default col-md-4" style="margin:2px;padding:2px;">'+
+						'	<div class="panel-body errorinfo" style="color:red;font-weight:bold;">'+
+						'		'+dataall['error']+
+						'	  </div>'+
+						'	</div>'
 					$('#resultinfo').html(s)
 					return
 				}
@@ -92,38 +90,6 @@ jQuery( document ).ready(function() {
 	        url: '/newmessagesend',
 	        data: jsondatastr,
 			temp: 0 
-			/*************
-	        success: function (data1) {
-				alert(data1)
-				data1 = JSON.parse(data1);
-				if(data1['error']){
-					return show_user_error(data1['error'])
-				}
-				s = `	
-					<div class="alert alert-dismissible alert-success">
-					  `+data1['info']+`
-					</div>
-					`
-				$('#resultinfo').html(s)
-				$('#fieldset1').hide()
-				$('#fieldset2').find('#sendpost').hide()
-	        },
-			statusCode: {
-    			500: function() {
-					errcnt_500++;
-					var msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос немного позже"
-					if(errcnt_500>=3) {
-					    msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос позже или напишите администратору сайта mixamarciv@gmail.com"
-					}
-					s = `	
-						<div class="alert alert-dismissible alert-danger">
-						  `+msg+`
-						</div>
-						`
-					$('#resultinfo').html(s)
-    			}
-  			}
-			*************/
 	    }).always(function() {
 		  		$('#sendpost').prop( "disabled", false );
 		}).done(function(data1) {
@@ -132,11 +98,16 @@ jQuery( document ).ready(function() {
 				if(data1['error']){
 					return show_user_error(data1['error'])
 				}
-				s = `	
-					<div class="alert alert-dismissible alert-success">
-					  `+data1['info']+`
-					</div>
-					`
+				s = '<div class="alert alert-dismissible alert-success">'+
+					data1['info']+
+					'</div>'
+					
+				if(data1['warning']){
+					s = '<div class="alert alert-dismissible alert-warning">'+
+						data1['warning']+
+						'</div>'+
+						s
+				}
 				$('#resultinfo').html(s)
 				$('#fieldset1').hide()
 				$('#fieldset2').find('#sendpost').hide()
@@ -146,11 +117,9 @@ jQuery( document ).ready(function() {
 				if(errcnt_500>=3) {
 				    msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос позже или напишите администратору сайта mixamarciv@gmail.com"
 				}
-				s = `	
-					<div class="alert alert-dismissible alert-danger">
-					  `+msg+`
-					</div>
-					`
+				s = '<div class="alert alert-dismissible alert-danger">'+
+					msg+
+					'</div>'
 				$('#resultinfo').html(s)
 		})
 	})
@@ -159,7 +128,9 @@ jQuery( document ).ready(function() {
 	$('.userpostdata').find('textarea').change(update_session_postdata)
 	{
 		//выводим картинки загруженные пользователем ранее в этой же сессии и обязательно после $('.userpostdata').find('input[type=text]').change(update_session_postdata)
-		var useroldimages = JSON.parse("{{.post.imagesuploaded_jsonstr}}");
+		var strjson = "{{.post.imagesuploaded_jsonstr}}"
+		if(strjson=="") strjson = "{}"
+		var useroldimages = JSON.parse(strjson);
 		for(i=0;i<useroldimages.length;i++){
 			var d = useroldimages[i]
 			show_userimage(d)

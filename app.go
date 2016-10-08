@@ -75,12 +75,13 @@ func main() {
 	m.Post("/newmessagesend", http_post_newmessagesend)
 	m.Post("/uploadfile", binding.MultipartForm(UploadForm{}), http_post_uploadfile)
 
-	m.Get("/useractivecode/:activecode", http_get_useractivecode)
-	m.Get("/userlogin", http_get_userlogin)
-	m.Post("/userlogin", http_post_userlogin)
+	m.Get("/useractivatecode/:activecode", http_get_useractivatecode)
+	//m.Get("/userlogin", http_get_userlogin)
+	//m.Post("/userlogin", http_post_userlogin)
 	m.Get("/user", http_get_userform)
-	m.Get("/userform", http_get_userform)
-	m.Post("/userform", http_post_userform)
+	m.Post("/user", http_post_userform)
+	//m.Get("/userform", http_get_userform)
+	//m.Post("/userform", http_post_userform)
 
 	m.Get("/messagelist", http_get_messagelist)
 	m.Get("/messagelist/:page", http_get_messagelist)
