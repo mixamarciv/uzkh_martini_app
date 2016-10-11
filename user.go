@@ -82,6 +82,7 @@ func error503(session sessions.Session, r render.Render) {
 	r.HTML(200, "error503", js)
 }
 
+/********
 func http_get_userlogin(session sessions.Session, r render.Render) {
 	error503(session, r)
 }
@@ -89,11 +90,17 @@ func http_get_userlogin(session sessions.Session, r render.Render) {
 func http_post_userlogin(session sessions.Session, r render.Render) {
 	error503(session, r)
 }
-
+********/
 func http_get_userform(session sessions.Session, r render.Render) {
-	error503(session, r)
+	var js = map[string]interface{}{}
+	u := GetSessJson(session, "user", "{}")
+	js["user"] = u
+	r.HTML(200, "user_form", js)
 }
 
 func http_post_userform(session sessions.Session, r render.Render) {
-	error503(session, r)
+	var js = map[string]interface{}{}
+	u := GetSessJson(session, "user", "{}")
+	js["user"] = u
+	r.HTML(200, "user_form", js)
 }
