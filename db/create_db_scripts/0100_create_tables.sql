@@ -1,6 +1,6 @@
 CREATE TABLE tuser (
     uuid          VARCHAR(36),
-    type          INTEGER DEFAULT 0,      -- 100 - admin, 10 - spec, 0 - user  
+    type          INTEGER DEFAULT 0,      -- 100 - admin, 50 - moderator, 10 - spec, 0 - user  
     fam           VARCHAR(200),
     name          VARCHAR(200),
     pat 	  VARCHAR(200),
@@ -14,12 +14,28 @@ CREATE TABLE tuser (
     upddate       VARCHAR(20),
     regdate       VARCHAR(20),
     regdatet      TIMESTAMP,
+    lastvisit     VARCHAR(20),
     isactive      INTEGER DEFAULT 0,
     activecode    VARCHAR(36),
+    activecodepass  VARCHAR(36),   /* код пользователя который обновляется при каждой аторизации на сайте
+				      поэтому изменения данных пользователя возможны только для последнего вошедшего под его учеткой 
+                                   */
     istemp        INTEGER DEFAULT 0
 );
 CREATE UNIQUE INDEX tuser_IDX1 ON tuser (uuid,istemp);
 CREATE UNIQUE INDEX tuser_IDX2 ON tuser (email,istemp);
+
+CREATE TABLE tuser_type (
+    type          INTEGER DEFAULT 0,      -- 100 - admin, 50 - moderator, 10 - spec, 0 - user  
+    name          VARCHAR(200)
+);
+CREATE UNIQUE INDEX tuser_type_IDX1 ON tuser_type (type);
+DELETE FROM tuser_type WHERE 1=1;
+INSERT INTO tuser_type(type,name) VALUES(100,'Администратор');
+INSERT INTO tuser_type(type,name) VALUES(50,'Модератор');
+INSERT INTO tuser_type(type,name) VALUES(10,'Специалист');
+INSERT INTO tuser_type(type,name) VALUES(0,'');
+COMMIT;
 
 
 CREATE TABLE tpost (

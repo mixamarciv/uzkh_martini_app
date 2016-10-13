@@ -9,8 +9,10 @@ import (
 	"github.com/martini-contrib/sessions"
 
 	"html/template"
+	"io/ioutil"
+	"net/http"
 
-	//mf "github.com/mixamarciv/gofncstd3000"
+	mf "github.com/mixamarciv/gofncstd3000"
 )
 
 //var sitedomain string = "192.168.1.120:8091"
@@ -89,4 +91,24 @@ func main() {
 	//--- /fileupload -----------------------------------------------------
 
 	m.RunOnAddr(":8091")
+}
+
+//разбор параметров пост запроса в map[string]interface{}
+func ParseBodyParams(req *http.Request) map[string]interface{} {
+	var m = map[string]interface{}{}
+
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		m["error"] = "ОШИБКА загрузки параметров: " + mf.ErrStr(err)
+		return m
+	}
+	//log.Println(string(body))
+
+	js, err := mf.FromJson(body)
+	if err != nil {
+		m["error"] = "ОШИБКА разбора параметров: " + mf.ErrStr(err)
+		return m
+	}
+
+	return js
 }

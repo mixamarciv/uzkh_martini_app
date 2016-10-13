@@ -1,22 +1,118 @@
+<script  type="text/javascript">
+var errcnt_500 = 0
+jQuery( document ).ready(function() {
+	var form = $('#form_login');
 	
+	form.submit(function(event){
+		event.preventDefault(); //отменяем стандартную обработку этого события
+		
+		{
+			var aerr = []
+			if( /^[a-z0-9_-]+@[a-z]+[a-z0-9_]+\.[a-z0-9]{2,5}$/i.test($('#email').val().trim())==false ) {
+				aerr.push('укажите корректный email (например example@email.net)')
+			}
+			if( /^[\s\S]{3,}$/i.test($('#pass').val())==false ) {
+				aerr.push('укажите пароль')
+			}
+			if( aerr.length > 0 ) return show_user_errors(aerr)
+		}
+		
+		jsondatastr = get_post_data_jsonstr()
+		
+		if(jsondatastr=="") return;
+		
+		$('#btn_login').prop('disabled', true);
+		
+		$.ajax({
+		    type: 'POST',
+		    url: '/user',
+		    data: jsondatastr
+		}).always(function() {
+			setTimeout(function(){$('#btn_login').prop('disabled', false);},500);
+		}).done(function(d) {
+			d = JSON.parse(d);
+			if(d['error']){
+				show_user_error(d['error'])
+				errcnt_500 = 0;
+			}
+			if(d['success']){
+				var sec = 3
+				var msg = '<div class="alert alert-dismissible alert-success">'+d['success']+'<br>страница будет перезагружена через '+sec+' секунды</div>';
+				$('#form_login_result').html(msg);
+				setTimeout(function(){
+					//перезагружаем текущую страницу
+					window.location.href = window.location.href.replace(/#.*$/g,'');
+				},sec*1000);
+			}
+		}).fail(function() {
+			errcnt_500++;
+			var msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос немного позже"
+			if(errcnt_500>=3) {
+			    msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос позже или напишите администратору сайта mixamarciv@gmail.com"
+			}
+			show_user_error(msg)
+		});
+	});
+});
+
+//get_post_data_jsonstr возвращает все введенные пользователем данные в json строке
+function get_post_data_jsonstr(){
+	var d = {}
+	d['type'] = "auth";
+	d['email'] = $('#email').val();
+	d['pass'] = $('#pass').val();
 	
-	<div class="container">
-		<div class="col-md-10 col-md-offset-1">
-			{{if .success}}
-			<div class="alert alert-dismissible alert-success">
-			  <h3>{{.success}}</h3>
-			</div>
-			{{end}}
-			{{if .error}}
-			<div class="alert alert-dismissible alert-danger">
-			  <h3><b>ОШИБКА:</b> {{.error}}</h3>
-			</div>
-			{{end}}
-		</div>
+	return JSON.stringify(d);
+}
+
+function show_user_error(err){
+	s = '<div class="alert alert-dismissible alert-danger"><button type="button" class="close" data-dismiss="alert">&times;</button>'+err+'</div>';
+	$('#form_login_result').html(s)
+}
+function show_user_errors(aerr){
+	a = ''
+	for(i=0;i<aerr.length;i++){
+		a += aerr[i]+'<br>'
+	}
+	show_user_error(a)
+}
+</script>
+
+<div class="container">
+<form class="form-horizontal userpostdata" id="form_login">
+  <fieldset id=fieldset_login>
+    <legend>Авторизация</legend>
+
+		
+	    <div class="form-group">
+	      <label for="email" class="col-md-2 control-label">Email<b style="color:red;">*</b></label>
+	      <div class="col-md-5">
+			<input name="email" placeholder="Email"  value="{{if .user.email}}{{.user.email}}{{else}}{{.user.email}}{{end}}"
+				   title="регистр букв не важен" 
+			       id="email" type="text" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
+		
+	    <div class="form-group">
+	      <label for="pass" class="col-md-2 control-label">Пароль</label>
+	      <div class="col-md-5">
+			<input name="pass" placeholder="Пароль" value="{{if .post.pass}}{{.post.pass}}{{else}}{{.user.pass}}{{end}}" 
+				   title="пароль вводится с учетом регистра" 
+			       id="pass" type="password" data-toggle="tooltip" class="form-control" />
+	      </div>
+	    </div>
 	</div>
 	
-
-
-
-
-
+	<br>
+	<div class="container">
+		<div class="col-md-8 col-md-offset-1" id=form_login_result></div>
+	</div>
+	
+	<div class="form-group">
+	  <div class="col-md-2 col-md-offset-3">
+	    <center><button type="submit" class="btn btn-primary btn-lg" id='btn_login'>авторизация</button></center>
+	  </div>
+	</div>
+  </fieldset>
+</form>
+</div>

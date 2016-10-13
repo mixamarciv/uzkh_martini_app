@@ -8,61 +8,29 @@ jQuery( document ).ready(function() {
 </script>
 	
 	
-	
-{{if .user.uuid2}} {{else}}
-	<form_login class="form-horizontal userpostdata">
-	  <fieldset id=fieldset_login>
-	    <legend>Авторизация</legend>
-
-			
-		    <div class="form-group">
-		      <label for="email" class="col-md-2 control-label">Email<b style="color:red;">*</b></label>
-		      <div class="col-md-5">
-				<input name="email" placeholder="Email"  value="{{if .user.email}}{{.user.email}}{{else}}{{.user.email}}{{end}}"
-					   title="регистр букв не важен" 
-				       id="email" type="text" data-toggle="tooltip" class="form-control" />
-		      </div>
-		    </div>
-			
-		    <div class="form-group">
-		      <label for="phone" class="col-md-2 control-label">Пароль</label>
-		      <div class="col-md-5">
-				<input name="pass" placeholder="Пароль" value="{{if .post.pass}}{{.post.pass}}{{else}}{{.user.pass}}{{end}}" 
-					   title="пароль вводится с учетом регистра" 
-				       id="phone" type="text" data-toggle="tooltip" class="form-control" />
-		      </div>
-		    </div>
+<div class="container">
+	<div class="col-md-10 col-md-offset-1">
+		{{if .success}}
+		<div class="alert alert-dismissible alert-success">
+		  <h3>{{.success}}</h3>
 		</div>
-		
-		<br>
-		<div class="col-md-8 col-md-offset-1" id=form_login_result></div>
-	
-		<div class="form-group">
-		  <div class="col-md-2 col-md-offset-3">
-		    <center><button type="submit" class="btn btn-primary btn-lg" id='btn_login'>авторизация</button></center>
-		  </div>
+		{{end}}
+		{{if .error}}
+		<div class="alert alert-dismissible alert-danger">
+		  <h3><b>ОШИБКА:</b> {{.error}}</h3>
 		</div>
-	  </fieldset>
-	</form_login>
-{{end}}
-{{if .user.uuid2}}
-	тут выводим информацию для пользователя
-{{end}}
-	<div class="container">
-		<div class="col-md-10 col-md-offset-1">
-			{{if .success}}
-			<div class="alert alert-dismissible alert-success">
-			  <h3>{{.success}}</h3>
-			</div>
-			{{end}}
-			{{if .error}}
-			<div class="alert alert-dismissible alert-danger">
-			  <h3><b>ОШИБКА:</b> {{.error}}</h3>
-			</div>
-			{{end}}
-		</div>
+		{{end}}
 	</div>
+</div>
 
+{{.user}}
+<div class="container">
+	{{if .user.isactive}} 
+		{{template "user_edit" .}}
+	{{else}}
+	    {{template "user_login" .}}
+	{{end}}
+</div>
 
 
 

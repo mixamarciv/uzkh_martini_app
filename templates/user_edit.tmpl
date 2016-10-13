@@ -1,0 +1,296 @@
+<script  type="text/javascript">
+var errcnt_500 = 0;
+jQuery( document ).ready(function() {
+	$('#form_edit').submit(function(event){
+		event.preventDefault(); //отменяем стандартную обработку этого события
+		
+		{
+			var aerr = []
+			if( /^[a-z0-9_-]+@[a-z]+[a-z0-9_]+\.[a-z0-9]{2,5}$/i.test($('#email').val().trim())==false ) {
+				aerr.push('обязательно укажите email(<i>например vash@email.ru</i>), на него будут направлены уведомления о решении проблемы')
+			}
+			if( /^\+?[78][ -\(]?9[0-9- \)]{9,}$/i.test($('#phone').val().trim())==false ) {
+				aerr.push('обязательно укажите ваш мобильный телефон(<i>только цифры</i>), он нужен для уточнения деталей и проверки на "фейковые"(ложные) заявления')
+			}
+			if( /^[a-zа-я ]{2,}$/i.test($('#fam').val().trim())==false ) {
+				aerr.push('укажите фамилию (<i>не менее 2 букв</i>)')
+			}
+			if( /^[a-zа-я ]{2,}$/i.test($('#name').val().trim())==false ) {
+				aerr.push('укажите имя (<i>не менее 2 букв</i>)')
+			}
+			if( /^[a-zа-я 0-9]{1,}$/i.test($('#pass').val().trim())!=false ) {
+				if( $('#newpass1').val().trim()=="" && $('#newpass2').val().trim()=="") {
+					aerr.push('не нужно вводить старый пароль если вы не хотите его менять')
+				}else{
+					if( /^[a-zа-я 0-9]{5,}$/i.test($('#newpass1').val().trim())==false ) {
+						aerr.push('новый пароль должен быть длиною не менее 5 символов')
+					}
+					if( $('#newpass1').val().trim()!=$('#newpass2').val().trim() ) {
+						aerr.push('надо что бы новые пароли совпадали')
+					}
+				}
+			}
+			
+			if( aerr.length > 0 ) return show_user_errors(aerr)
+		}
+		
+		jsondatastr = get_post_data_jsonstr()
+		
+		if(jsondatastr=="") return;
+		
+		$('.btn_submit').prop('disabled', true);
+		
+		$.ajax({
+		    type: 'POST',
+		    url: '/user',
+		    data: jsondatastr
+		}).always(function() {
+			setTimeout(function(){$('.btn_submit').prop('disabled', false);},500);
+		}).done(function(d) {
+			d = JSON.parse(d);
+			if(d['error']){
+				msg = d['error']
+				if(errcnt_500++>=3) {
+				    msg += "<br>\nвы можете сообщить об ошибке администратору сайта mixamarciv@gmail.com"
+				}
+				show_user_error(msg)
+			}
+			if(d['success']){
+				var sec = 3
+				var msg = '<div class="alert alert-dismissible alert-success">'+d['success']+'<br>страница будет перезагружена через '+sec+' секунды</div>';
+				$('#form_edit_result').html(msg)
+				setTimeout(function(){
+					//перезагружаем текущую страницу
+					window.location.href = window.location.href.replace(/#.*$/g,'');
+				},sec*1000);
+			}
+		}).fail(function() {
+			var msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос немного позже"
+			if(errcnt_500++>=3) {
+			    msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос позже или напишите администратору сайта mixamarciv@gmail.com"
+			}
+			show_user_error(msg)
+		});
+	});
+	
+	$('#btn_logout').click(function(){
+		$('.btn_submit').prop('disabled', true);
+		
+		jsondatastr = get_post_data_jsonstr_logout()
+		
+		$.ajax({
+		    type: 'POST',
+		    url: '/user',
+		    data: jsondatastr
+		}).always(function() {
+
+		}).done(function(d) {
+			d = JSON.parse(d);
+			if(d['error']){
+				msg = d['error']
+				if(errcnt_500++>=3) {
+				    msg += "<br>\nвы можете сообщить об ошибке администратору сайта mixamarciv@gmail.com"
+				}
+				show_user_error(msg)
+			}
+			if(d['success']){
+				var sec = 3
+				var msg = '<div class="alert alert-dismissible alert-success">'+d['success']+'<br>страница будет перезагружена через '+sec+' секунды</div>';
+				$('#form_edit_result').html(msg);
+				setTimeout(function(){
+					//перезагружаем текущую страницу
+					window.location.href = window.location.href.replace(/#.*$/g,'');
+				},sec*1000);
+			}
+		}).fail(function() {
+			var msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос немного позже"
+			if(errcnt_500++>=3) {
+			    msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос позже или напишите администратору сайта mixamarciv@gmail.com"
+			}
+			show_user_error(msg)
+		});
+	});
+});
+
+//get_post_data_jsonstr возвращает все введенные пользователем данные в json строке
+function get_post_data_jsonstr(){
+	var d = {}
+	d['type'] = "edit";
+	d['uuid'] = $('#uuid').val();
+	d['email'] = $('#email').val();
+	d['pass'] = $('#pass').val();
+	d['newpass'] = $('#newpass1').val();
+	d['fam'] = $('#fam').val();
+	d['name'] = $('#name').val();
+	d['pat'] = $('#pat').val();
+	d['email'] = $('#email').val();
+	d['phone'] = $('#phone').val();
+	d['street'] = $('#street').val();
+	d['house'] = $('#house').val();
+	d['flat'] = $('#flat').val();
+	d['activecodepass'] = $('#activecodepass').val();
+	
+	return JSON.stringify(d);
+}
+
+function get_post_data_jsonstr_logout(){
+	var d = {}
+	d['type'] = "logout";
+	d['uuid'] = $('#uuid').val();
+	return JSON.stringify(d);
+}
+
+function show_user_error(err){
+	s = '<div class="alert alert-dismissible alert-danger"><button type="button" class="close" data-dismiss="alert">&times;</button>'+err+'</div>';
+	$('#form_edit_result').html(s)
+}
+function show_user_errors(aerr){
+	a = ''
+	for(i=0;i<aerr.length;i++){
+		a += aerr[i]+'<br>'
+	}
+	show_user_error(a)
+}
+</script>
+
+<div class="container">
+<form class="form-horizontal userpostdata" id="form_edit">
+  <fieldset id=fieldset_login>
+    <legend>Информация о вас:</legend>
+	<div class="form-group">
+	  <div class="col-md-8">
+		Эти данные могут быть использованы для извещения вас о процессе решения и рассмотрения ваших заявлений	  
+	  </div>
+      <div class="col-md-4">
+		{{if .user.type}} 
+			<div class="alert alert-dismissible alert-info">
+			  <strong>{{.user.type}}</strong>
+			</div>
+		{{end}}
+	  </div>
+	</div>
+	
+	<input name="uuid"  value="{{.user.uuid}}" id="uuid" type="hidden" />
+	<input name="activecodepass"  value="{{.user.activecodepass}}" id="activecodepass" type="hidden" />
+	
+	<div class="container">
+		<div class="col-md-5">
+		    <div class="form-group">
+		      <label for="fam" class="col-md-2 control-label">Фамилия<b style="color:red;">*</b></label>
+		      <div class="col-md-10">
+				<input name="fam" placeholder="Фамилия" value="{{.user.fam}}"
+				       id="fam" type="text" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+		    <div class="form-group">
+		      <label for="name" class="col-md-2 control-label">Имя<b style="color:red;">*</b></label>
+		      <div class="col-md-10">
+				<input name="name" placeholder="Имя" value="{{.user.name}}"
+				       id="name" type="text" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+		    <div class="form-group">
+		      <label for="pat" class="col-md-2 control-label">Отчество</label>
+		      <div class="col-md-10">
+				<input name="pat" placeholder="Отчество" value="{{.user.pat}}"
+				       id="pat" type="text" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+			
+		    <div class="form-group" style="display:none;">
+		      <label for="email" class="col-md-2 control-label">Email<b style="color:red;">*</b></label>
+		      <div class="col-md-10">
+				<input name="email" placeholder="Email"  value="{{.user.email}}"
+					   title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы а также запрос на подтверждение заявления (email не будет опубликована на сайте)" 
+				       id="email" type="hidden" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+			
+		    <div class="form-group">
+		      <label for="phone" class="col-md-2 control-label">Телефон<b style="color:red;">*</b></label>
+		      <div class="col-md-10">
+				<input name="phone" placeholder="телефон" value="{{.user.phone}}" 
+					   title="может понадобиться для уточнения деталей (указывать обязательно, телефон будет доступен только сотрудникам МКУ ''УЖКХ'')" 
+				       id="phone" type="text" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+		</div>
+		
+		<div class="col-md-6">
+			<legend>Адрес</legend>
+	
+		    <div class="form-group">
+		      <label for="street" class="col-md-2 control-label">Улица</label>
+		      <div class="col-md-10">
+				<input name="street" placeholder="Улица" value="{{.user.street}}" 
+				       id="street" type="text" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+			
+		    <div class="form-group">
+		      <label for="house" class="col-md-2 control-label">Дом</label>
+		      <div class="col-md-10">
+				<input name="house" placeholder="Дом" value="{{.user.house}}"
+				       id="house" type="text" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+			
+		    <div class="form-group">
+		      <label for="flat" class="col-md-2 control-label">Квартира</label>
+		      <div class="col-md-10">
+				<input name="flat" placeholder="Квартира" value="{{.user.flat}}"
+					   title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы (эта информация не будет опубликована на сайте)" 
+				       id="flat" type="text" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+			
+		</div>
+	</div>
+	
+	<br>
+	<div class="container">
+		<div class="col-md-10">
+			<legend>для смены пароля укажите:</legend>
+		    <div class="form-group">
+		      <label for="pass" class="col-md-2 control-label">старый пароль</label>
+		      <div class="col-md-5">
+				<input name="pass" placeholder="текущий пароль" value="" 
+					   title="пароль вводится с учетом регистра" 
+				       id="pass" type="password" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+		    <div class="form-group">
+		      <label for="newpass1" class="col-md-2 control-label">новый пароль</label>
+		      <div class="col-md-5">
+				<input name="newpass" placeholder="новый пароль" value="" 
+					   title="пароль вводится с учетом регистра" 
+				       id="newpass1" type="password" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+		    <div class="form-group">
+		      <label for="newpass2" class="col-md-2 control-label">новый пароль ещё раз</label>
+		      <div class="col-md-5">
+				<input name="newpass2" placeholder="новый пароль" value="" 
+					   title="пароль вводится с учетом регистра" 
+				       id="newpass2" type="password" data-toggle="tooltip" class="form-control" />
+		      </div>
+		    </div>
+		</div>
+	</div>
+	
+	<br>
+	<div class="container">
+		<div class="col-md-8 col-md-offset-1" id=form_edit_result></div>
+	</div>
+	
+	<div class="form-group">
+	  <div class="col-md-2 col-md-offset-3">
+	    <left><button type="submit" class="btn btn-primary btn-lg btn_submit">сохранить</button></left>
+	  </div>
+	  <div class="col-md-2 col-md-offset-5">
+	    <right><a href="#" class="btn btn-lg btn-danger" id="btn_logout">выход</a></right>
+	  </div>
+	</div>
+  </fieldset>
+</form>
+</div>
