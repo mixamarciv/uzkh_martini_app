@@ -109,7 +109,9 @@ func SendMailNewPostsToWork() {
 				}
 			}
 
-			SendMail(work_email_1, sbj, msg, files)
+			for _, iemail := range work_emails {
+				SendMail(iemail, sbj, msg, files)
+			}
 
 			{ //обновляем информацию о том что сообщение отправлено на рабочий емейл
 				query := "UPDATE tpost SET isstartwork=1 WHERE uuid=? "
