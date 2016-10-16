@@ -77,17 +77,17 @@ func main() {
 	m.Post("/newmessagesend", http_post_newmessagesend)
 	m.Post("/uploadfile", binding.MultipartForm(UploadForm{}), http_post_uploadfile)
 
-	m.Get("/useractivatecode/:activecode", http_get_useractivatecode)
-	//m.Get("/userlogin", http_get_userlogin)
-	//m.Post("/userlogin", http_post_userlogin)
+	m.Get("/useractivatecode/:acttype/:activecode", http_get_useractivatecode)
 	m.Get("/user", http_get_userform)
 	m.Post("/user", http_post_userform)
-	//m.Get("/userform", http_get_userform)
-	//m.Post("/userform", http_post_userform)
 
 	m.Get("/messagelist", http_get_messagelist)
 	m.Get("/messagelist/:page", http_get_messagelist)
 	m.Get("/messageview/:uuid", http_get_messageview)
+	m.Post("/commentsview", http_post_commentsview)
+
+	m.Post("/comment_new_savesession", http_post_comment_new_savesession)
+	m.Post("/comment_new", http_post_comment_new)
 	//--- /fileupload -----------------------------------------------------
 
 	m.RunOnAddr(":8091")
@@ -111,4 +111,38 @@ func ParseBodyParams(req *http.Request) map[string]interface{} {
 	}
 
 	return js
+}
+
+func GetSessStr(session sessions.Session, varname, defaultval string) string {
+	v := session.Get(varname)
+	if v == nil {
+		return defaultval
+	}
+	return v.(string)
+}
+
+func SetSessStr(session sessions.Session, varname, val string) {
+	session.Set(varname, val)
+}
+
+func GetSessJson(session sessions.Session, varname, defaultval string) map[string]interface{} {
+	v := session.Get(varname)
+	if v == nil {
+		j, err := mf.FromJson([]byte(defaultval))
+		if err == nil {
+			return j
+		}
+		m := map[string]interface{}{"error": mf.ErrStr(err)}
+		return m
+	}
+	j, err := mf.FromJson([]byte(v.(string)))
+	if err == nil {
+		return j
+	}
+	m := map[string]interface{}{"error": mf.ErrStr(err)}
+	return m
+}
+
+func SetSessJson(session sessions.Session, varname string, val map[string]interface{}) {
+	session.Set(varname, mf.ToJsonStr(val))
 }

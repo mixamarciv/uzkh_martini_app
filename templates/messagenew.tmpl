@@ -62,7 +62,7 @@ jQuery( document ).ready(function() {
 			aerr.push('обязательно укажите email(<i>например vash@email.ru</i>), на него будут направлены уведомления о решении проблемы')
 		}
 		if( /^\+?[78][ -\(]?9[0-9- \)]{9,}$/i.test($('#phone').val().trim())==false ) {
-			aerr.push('обязательно укажите ваш мобильный телефон(<i>только цифры</i>), он нужен для уточнения деталей и проверки на "фейковые"(ложные) заявления')
+			aerr.push('обязательно укажите ваш мобильный телефон(<i>только цифры</i>), он может понадобится для уточнения деталей и проверки на "фейковые"(ложные) заявления')
 		}
 		if( /[a-zа-я \n\r]{5,}/i.test($('#posttext').val().trim())==false ) {
 			aerr.push('напишите хотя бы несколько слов о проблеме')
@@ -272,21 +272,21 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="fam" class="col-md-2 control-label">Фамилия<b style="color:red;">*</b></label>
 	      <div class="col-md-10">
-			<input name="fam" placeholder="Фамилия" value="{{if .post.fam}}{{.post.fam}}{{else}}{{.user.fam}}{{end}}"
+			<input name="fam" placeholder="Фамилия" value="{{if .post.fam}}{{.post.fam}}{{else}}{{if .user.fam}}{{.user.fam}}{{else}}{{.comment.fam}}{{end}}{{end}}"
 			       id="fam" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 	    <div class="form-group">
 	      <label for="name" class="col-md-2 control-label">Имя<b style="color:red;">*</b></label>
 	      <div class="col-md-10">
-			<input name="name" placeholder="Имя" value="{{if .post.name}}{{.post.name}}{{else}}{{.user.name}}{{end}}"
+			<input name="name" placeholder="Имя" value="{{if .post.name}}{{.post.name}}{{else}}{{if .user.name}}{{.user.name}}{{else}}{{.comment.name}}{{end}}{{end}}"
 			       id="name" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
 	    <div class="form-group">
 	      <label for="pat" class="col-md-2 control-label">Отчество</label>
 	      <div class="col-md-10">
-			<input name="pat" placeholder="Отчество" value="{{if .post.pat}}{{.post.pat}}{{else}}{{.user.pat}}{{end}}"
+			<input name="pat" placeholder="Отчество" value="{{if .post.pat}}{{.post.pat}}{{else}}{{if .user.pat}}{{.user.pat}}{{else}}{{.comment.pat}}{{end}}{{end}}"
 			       id="pat" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -294,8 +294,9 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="email" class="col-md-2 control-label">Email<b style="color:red;">*</b></label>
 	      <div class="col-md-10">
-			<input name="email" placeholder="Email"  value="{{if .post.email}}{{.post.email}}{{else}}{{.user.email}}{{end}}"
-				   title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы а также запрос на подтверждение заявления (email не будет опубликована на сайте)" 
+			<input name="email" placeholder="Email"  value="{{if .post.email}}{{.post.email}}{{else}}{{if .user.email}}{{.user.email}}{{else}}{{.comment.email}}{{end}}{{end}}"
+				   title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы 
+						  а также запрос на подтверждение заявления (указывать обязательно, публиковаться не будет)" 
 			       id="email" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -303,8 +304,8 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="phone" class="col-md-2 control-label">Телефон<b style="color:red;">*</b></label>
 	      <div class="col-md-10">
-			<input name="phone" placeholder="телефон" value="{{if .post.phone}}{{.post.phone}}{{else}}{{.user.phone}}{{end}}" 
-				   title="может понадобиться для уточнения деталей (указывать обязательно, телефон будет доступен только сотрудникам МКУ ''УЖКХ'')" 
+			<input name="phone" placeholder="телефон" value="{{if .post.phone}}{{.post.phone}}{{else}}{{if .user.phone}}{{.user.phone}}{{else}}{{.comment.phone}}{{end}}{{end}}" 
+				   title="может понадобиться для уточнения деталей и необходим для проверки на ''фейковые''(ложные) заявления/сообщения (указывать обязательно, публиковаться не будет)" 
 			       id="phone" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -316,7 +317,7 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="street" class="col-md-2 control-label">Улица</label>
 	      <div class="col-md-10">
-			<input name="street" placeholder="Улица" value="{{if .post.street}}{{.post.street}}{{else}}{{.user.street}}{{end}}" 
+			<input name="street" placeholder="Улица" value="{{if .post.street}}{{.post.street}}{{else}}{{if .user.street}}{{.user.street}}{{else}}{{.comment.street}}{{end}}{{end}}" 
 			       id="street" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -324,7 +325,7 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="house" class="col-md-2 control-label">Дом</label>
 	      <div class="col-md-10">
-			<input name="house" placeholder="Дом" value="{{if .post.house}}{{.post.house}}{{else}}{{.user.house}}{{end}}"
+			<input name="house" placeholder="Дом" value="{{if .post.house}}{{.post.house}}{{else}}{{if .user.house}}{{.user.house}}{{else}}{{.comment.house}}{{end}}{{end}}"
 			       id="house" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>
 	    </div>
@@ -332,7 +333,7 @@ function show_user_errors(aerr){
 	    <div class="form-group">
 	      <label for="flat" class="col-md-2 control-label">Квартира</label>
 	      <div class="col-md-10">
-			<input name="flat" placeholder="Квартира" value="{{if .post.flat}}{{.post.flat}}{{else}}{{.user.flat}}{{end}}"
+			<input name="flat" placeholder="Квартира" value="{{if .post.flat}}{{.post.flat}}{{else}}{{if .user.flat}}{{.user.flat}}{{else}}{{.comment.flat}}{{end}}{{end}}"
 				   title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы (эта информация не будет опубликована на сайте)" 
 			       id="flat" type="text" data-toggle="tooltip" class="form-control" />
 	      </div>

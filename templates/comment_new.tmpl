@@ -1,0 +1,375 @@
+
+
+<script  type="text/javascript">
+var imagesuploaded = []
+jQuery( document ).ready(function() {
+	$('input[type=text]').tooltip({ placement: "top", trigger: "focus" });
+	$('input[type=checkbox]').tooltip({ placement: "top", trigger: "focus" });
+	
+	$('#fileupload').click(function(){
+		$('#fileuploadctrl').val('')
+		document.getElementById('fileuploadctrl').click();
+	});
+	
+	$('#fileuploadctrl').change(function(){
+		obj = $('#fileuploadctrl');
+		
+	    var fd = new FormData;
+		
+		for(i=0;i<obj.prop('files').length;i++){
+			fd.append('file', obj.prop('files')[i]);
+		}
+		fd.append('path', obj.val());
+		fd.append('time', $('#time').val());
+		fd.append('uuid', $('#uuid').val());
+		
+	    $.ajax({
+	        type: 'POST',
+	        url: '/uploadfile',
+	        data: fd,
+	        processData: false,
+	        contentType: false,
+	        success: function (dataall) {
+				//alert(dataall)
+				//return
+				dataall = JSON.parse(dataall);
+				if(dataall['error']){
+					return show_msg('#resultinfo',dataall['error'],{is_sys_error:1,max_errors_show:1})
+				}
+				
+				for(i=0;i<dataall["cnt"];i++){
+					data = dataall[i]
+					show_userimage(data)
+				}
+				update_session_postdata(1)
+	        }
+	    }).fail(function() {
+			$('#resultinfo').html("")
+			var msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос немного позже"
+			show_msg('#resultinfo',msg,{is_sys_error:1,max_errors_show:1})
+		})
+		
+		//alert(fd);
+	})
+	
+	
+	$('#sendpost').click(function(){
+		var aerr = []
+		
+		if( /^[a-z0-9_-]+@[a-z]+[a-z0-9_]+\.[a-z0-9]{2,5}$/i.test($('#email').val().trim())==false ) {
+			aerr.push('обязательно укажите ваш email(<i>например ivanov@mail.ru</i>), на него будет направлена ссылка для подтверждения')
+		}
+		if( /^\+?[78][ -\(]?9[0-9- \)]{9,}$/i.test($('#phone').val().trim())==false ) {
+			aerr.push('обязательно укажите ваш мобильный телефон(<i>только цифры</i>), он может понадобится для проверки на "фейковые"(ложные) заявления')
+		}
+		if( /[a-zа-я \n\r]{5,}/i.test($('#posttext').val().trim())==false ) {
+			aerr.push('напишите хотя бы несколько слов в комментарии')
+		}
+		if( /^[a-zа-я ]{2,}$/i.test($('#fam').val().trim())==false ) {
+			aerr.push('укажите фамилию (<i>не менее 2 букв</i>)')
+		}
+		if( /^[a-zа-я ]{2,}$/i.test($('#name').val().trim())==false ) {
+			aerr.push('укажите имя (<i>не менее 2 букв</i>)')
+		}
+		
+		if( aerr.length > 0 ){
+		    return show_msg_arr('#resultinfo',aerr)
+		}else{
+			$('#resultinfo').html("")
+		}
+		
+		jsondatastr = get_comment_data_jsonstr()
+		
+		
+		$('#sendpost').prop( "disabled", true );
+		
+	    $.ajax({
+	        type: 'POST',
+	        url: '/comment_new',
+	        data: jsondatastr,
+			temp: 0 
+	    }).always(function() {
+		  		$('#sendpost').prop( "disabled", false );
+		}).done(function(data1) {
+				//alert(data1)
+				dstr = data1
+				data1 = JSON.parse(data1);
+				if(data1['error']){
+					return show_msg('#resultinfo',data1['error'],{is_sys_error:1,max_msg_show:1})
+				}
+					
+				show_msg('#resultinfo',data1['info'],{type:'success',max_msg_show:10})
+				if(data1['warning']){
+					show_msg('#resultinfo',data1['warning'],{type:'warning',max_msg_show:10})
+				}
+				//show_msg('#resultinfo',dstr,{type:'info',max_msg_show:10})
+				
+				if(data1["comment"]){
+					//если комментарий успешно загружен, то очищаем все поля (кроме данных пользователя)
+					//и перезагружаем список комментариев
+					var c = data1["comment"]
+					$('#uuid').val(c['uuid']);
+					$('#time').val(c['time']);
+					$('#posttext').val('');
+					imagesuploaded = [];
+					$('#filesinfo').html('');
+					
+					if(load_all_comments) load_all_comments();
+				}
+				
+		}).fail(function() {
+				$('#resultinfo').html("")
+				var msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> повторите ваш запрос немного позже"
+				show_msg('#resultinfo',msg,{is_sys_error:1,max_errors_show:1})
+		})
+	})
+	
+	$('.usercommentdata').find('input[type=text]').change(update_session_postdata)
+	$('.usercommentdata').find('textarea').change(update_session_postdata)
+	{
+		//выводим картинки загруженные пользователем ранее в этой же сессии и обязательно после $('.userpostdata').find('input[type=text]').change(update_session_postdata)
+		var strjson = "{{.comment.imagesuploaded_jsonstr}}"
+		if(strjson=="") strjson = "{}"
+		var useroldimages = JSON.parse(strjson);
+		for(i=0;i<useroldimages.length;i++){
+			var d = useroldimages[i]
+			show_userimage(d)
+		}
+	}
+});
+
+
+//сохраняем промежуточные данные введенные пользователем в текущей сессии
+window.savesession_postdata = 0  // флаг сохранения текущей сессии
+window.savesession_cnt = 0
+window.savesession_wait = 0
+function update_session_postdata(needsave){
+	var stimeout = 3000
+	if(window.savesession_postdata==0 || needsave==1){
+		window.savesession_wait = 0;
+		window.savesession_postdata = 1;
+		jsondatastr = get_comment_data_jsonstr()
+		$.ajax({
+		    type: 'POST',
+		    url: '/comment_new_savesession',
+		    data: jsondatastr,
+		    success: function (data1) {
+				window.savesession_cnt += 1;
+				//$('#resultinfo').html("update "+window.savesession_cnt)
+				setTimeout(function(){window.savesession_postdata = 0;},stimeout)
+		    }
+		}).fail(function() {
+				$('#resultinfo').html("")
+				var msg = "<b>ВНИМАНИЕ: произошла внутренняя ошибка сервера</b><br> попробуйте перезагрузить страницу(текст в полях для ввода будет потерян)"
+				show_msg('#resultinfo',msg,{is_sys_error:1,max_errors_show:1})
+		});
+	}else{
+		if(window.savesession_wait == 0){
+			window.savesession_wait = 1
+			setTimeout(update_session_postdata,stimeout)
+		}
+	}
+}
+
+//добавляет блок загруженной картинки с подписью для редактирования пользователем
+function show_userimage(data){
+	if(!data) return;
+	if(!data['path']) return;	
+	if(!data['pathmin']) return;
+	//alert(data)
+	n = imagesuploaded.length
+	imagesuploaded[n] = data
+	
+	if(!data['text']) data['text'] = ''
+	
+	s = `	
+			<div class="panel panel-default col-md-3 userimageblock`+n+`" style="margin:2px;padding:2px;">
+			  <div class="panel-body">
+				<button type="button" class="close" onclick="removeimage(`+n+`)">&times;</button>
+			    <center>
+					<a href="`+data['path']+`" title="" data-gallery>
+					<img src="`+data['pathmin']+`" style="margin:4px;padding:4px;"/>
+					</a>
+				</center>
+				<input type="text" placeholder="укажите описание файла" title="" data-toggle="tooltip" 
+					   class="form-control imagenxname" filen=`+n+`
+					   value="`+data['text']+`"
+					/>
+			  </div>
+			</div>
+		`
+	$('#filesinfo').append(s)
+	$('#filesinfo').find('input[filen='+n+']').change(update_session_postdata)
+}
+
+function removeimage(n){
+	imagesuploaded[n] = {}
+	delete imagesuploaded[n];
+	$('#filesinfo').find(".userimageblock"+n).remove()
+	update_session_postdata()
+}
+
+//get_comment_data_jsonstr возвращает все введенные пользователем данные в json строке
+function get_comment_data_jsonstr(){
+	var d = {}
+	d['uuid_post'] = '{{.post.uuid}}';
+	d['uuid'] = $('#uuid').val();
+	d['time'] = $('#time').val();
+	d['hidepost'] = $('#hidepost').val();
+	d['hideuser'] = 0;
+	d['fam'] = $('#fam').val();
+	d['name'] = $('#name').val();
+	d['pat'] = $('#pat').val();
+	d['email'] = $('#email').val();
+	d['phone'] = $('#phone').val();
+	d['street'] = $('#street').val();
+	d['house'] = $('#house').val();
+	d['flat'] = $('#flat').val();
+	d['posttext'] = $('#posttext').val();
+	
+	$(".imagenxname").each(function(){
+		var obj = $( this )
+		var i = obj.attr("filen")
+		if(imagesuploaded[i]){
+			imagesuploaded[i]['text'] = obj.val()
+		}
+	})
+	d['imagesuploaded'] = imagesuploaded;
+	
+	return JSON.stringify(d);
+}
+</script>
+
+<div class="container">
+<form1 class="form-horizontal usercommentdata">
+	
+	<input type=hidden id="uuid" value="{{.comment.uuid}}" />
+	<input type=hidden id="time" value="{{.comment.time}}" />
+	
+<ul class="nav nav-tabs">
+  <li class="active"><a href="#comment_text" data-toggle="tab" aria-expanded="false">добавить комментарий</a></li>
+  <li class=""><a href="#comment_author" data-toggle="tab" aria-expanded="true">{{if .user.fam}}от {{.user.name}} {{.user.pat}} {{.user.fam}}{{else}}заполните ваши данные<b style="color:red;">*</b>{{end}}</a></li>
+</ul>
+<div id="myTabContent" class="tab-content">
+  <div class="tab-pane fade active in" id="comment_text">
+			<div class="container" style="padding-top:10px;margin-top:10px;">
+				<div class="row">
+					<div class="col-md-10">
+						<div class="form-group">
+						  <!-- <label class="control-label" for="posttext">текст комментария<b style="color:red;">*</b></label> -->
+						  <textarea class="form-control" rows="4" id="posttext">{{.comment.posttext}}</textarea>
+						</div>
+					</div>
+					<div class="col-md-2 bottom-align-text">
+						<button type="submit" class="btn" id=fileupload>загрузить фото</button>
+					</div>
+				</div>
+				
+				<div class="row">
+					<div class="container">
+						  <span style="display:none;"><input id=fileuploadctrl type="file" multiple="multiple" accept="image/jpeg,image/jpg" class="btn"></span>
+						  <div id=filesinfo></div>
+					</div>
+				</div>
+				
+				<div class="row">
+					<div class="col-md-10 col-md-offset-1">
+					    <button type="submit" class="btn btn-primary btn-lg" id='sendpost'>отправить</button>
+					</div>
+				</div>
+				
+			</div>
+  </div>
+  <div class="tab-pane fade" id="comment_author">
+			<div class="container" style="padding-top:10px;margin-top:10px;">
+				<div class="col-md-5">
+					<legend>От кого</legend>
+				    <div class="form-group">
+				      <label for="fam" class="col-md-2 control-label">Фамилия<b style="color:red;">*</b></label>
+				      <div class="col-md-10">
+						<input name="fam" placeholder="Фамилия" value="{{if .comment.fam}}{{.comment.fam}}{{else}}{{.user.fam}}{{end}}"
+						       id="fam" type="text" data-toggle="tooltip" class="form-control" />
+				      </div>
+				    </div>
+				    <div class="form-group">
+				      <label for="name" class="col-md-2 control-label">Имя<b style="color:red;">*</b></label>
+				      <div class="col-md-10">
+						<input name="name" placeholder="Имя" value="{{if .comment.name}}{{.comment.name}}{{else}}{{.user.name}}{{end}}"
+						       id="name" type="text" data-toggle="tooltip" class="form-control" />
+				      </div>
+				    </div>
+				    <div class="form-group">
+				      <label for="pat" class="col-md-2 control-label">Отчество</label>
+				      <div class="col-md-10">
+						<input name="pat" placeholder="Отчество" value="{{if .comment.pat}}{{.comment.pat}}{{else}}{{.user.pat}}{{end}}"
+						       id="pat" type="text" data-toggle="tooltip" class="form-control" />
+				      </div>
+				    </div>
+					
+				    <div class="form-group">
+				      <label for="email" class="col-md-2 control-label">Email<b style="color:red;">*</b></label>
+				      <div class="col-md-10">
+						<input name="email" placeholder="Email"  value="{{if .comment.email}}{{.comment.email}}{{else}}{{.user.email}}{{end}}"
+							   title="на этот email прийдет запрос на подтверждение вашего комментария (указывать обязательно, публиковаться не будет)" 
+						       id="email" type="text" data-toggle="tooltip" class="form-control" />
+				      </div>
+				    </div>
+					
+				    <div class="form-group">
+				      <label for="phone" class="col-md-2 control-label">Телефон<b style="color:red;">*</b></label>
+				      <div class="col-md-10">
+						<input name="phone" placeholder="телефон" value="{{if .comment.phone}}{{.comment.phone}}{{else}}{{.user.phone}}{{end}}" 
+							   title="необходим для проверки на ''фейковые''(ложные) заявления/сообщения (указывать обязательно, публиковаться не будет)" 
+						       id="phone" type="text" data-toggle="tooltip" class="form-control" />
+				      </div>
+				    </div>
+				</div>
+				
+				<div class="col-md-6">
+					<legend>Адрес</legend>
+			
+				    <div class="form-group">
+				      <label for="street" class="col-md-2 control-label">Улица</label>
+				      <div class="col-md-10">
+						<input name="street" placeholder="Улица" value="{{if .comment.street}}{{.comment.street}}{{else}}{{.user.street}}{{end}}" 
+						       id="street" type="text" data-toggle="tooltip" class="form-control" />
+				      </div>
+				    </div>
+					
+				    <div class="form-group">
+				      <label for="house" class="col-md-2 control-label">Дом</label>
+				      <div class="col-md-10">
+						<input name="house" placeholder="Дом" value="{{if .comment.house}}{{.comment.house}}{{else}}{{.user.house}}{{end}}"
+						       id="house" type="text" data-toggle="tooltip" class="form-control" />
+				      </div>
+				    </div>
+					
+				    <div class="form-group">
+				      <label for="flat" class="col-md-2 control-label">Квартира</label>
+				      <div class="col-md-10">
+						<input name="flat" placeholder="Квартира" value="{{if .comment.flat}}{{.comment.flat}}{{else}}{{.user.flat}}{{end}}"
+							   title="на этот адрес будут приходить сообщения о процессе рассмотрения и решения указанной проблемы (эта информация не будет опубликована на сайте)" 
+						       id="flat" type="text" data-toggle="tooltip" class="form-control" />
+				      </div>
+				    </div>
+					
+				</div>
+			</div>
+  </div>
+</div>
+</form1>
+</div>
+
+<div class="container" >
+<br>
+</div>
+
+<div class="container" id=resultinfo>
+
+</div>
+
+
+
+
+
+

@@ -78,7 +78,7 @@ func SendMailNewPostsToWork() {
 				m["postdates"] = postdates
 				m["imgcnt"] = imgcnt
 				if imgcnt > 0 {
-					m["images"] = load_posts_images_arr(m["uuid"].(string))
+					m["images"] = load_posts_or_comment_images_arr(m["uuid"].(string), "post", 0)
 				}
 				posts = append(posts, m)
 			}

@@ -7,6 +7,7 @@
 			</div>
 		{{end}}
 
+		
 		{{if .posts}}
 			{{range .posts}}
 				<div class="row">
@@ -20,18 +21,20 @@
 						  <div class="col-md-12" style="white-space: pre-wrap;">{{printf "%s" .text}}</div>
 						  {{if .images}}
 							<div class="col-md-12">
+								{{$ipost := .postdates}}
 								{{range .images}}
-									<a href="{{.path}}" title="{{.title}}" data-gallery>
+									<a href="{{.path}}" title="{{.title}}" data-gallery=imgs{{.ipost}}>
 									<img src="{{.pathmin}}" style="margin:4px;padding:4px;"/>
 									</a>
 								{{end}}
+								
 							</div>
 						  {{end}}
 					  </div>
 					  <div class="panel-footer">
 						<div class="container">
 							<div class="col-md-1"><a href="/messageview/{{.uuid}}" title="просмотр">просмотр</a></div>
-							<div class="col-md-2"><a href="/messageview/{{.uuid}}#comment" title="просмотр комментариев">комментарии (0)</a></div>
+							<div class="col-md-2"><a href="/messageview/{{.uuid}}#comment" title="просмотр комментариев">комментарии ({{.commentcnt}})</a></div>
 						</div>
 					  </div>
 					</div>
