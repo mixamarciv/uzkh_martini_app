@@ -90,7 +90,7 @@ func main() {
 	m.Post("/comment_new", http_post_comment_new)
 	//--- /fileupload -----------------------------------------------------
 
-	m.RunOnAddr(":8091")
+	m.RunOnAddr(run_on_addr)
 }
 
 //разбор параметров пост запроса в map[string]interface{}
