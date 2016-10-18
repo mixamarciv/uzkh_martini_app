@@ -42,8 +42,8 @@ func main() {
 	//--- /static ---------------------------------------------------------
 
 	//--- session ---------------------------------------------------------
-	store := sessions.NewCookieStore([]byte("secret1234"))
-	m.Use(sessions.Sessions("uzkhsess", store))
+	store := sessions.NewCookieStore([]byte(secret_cookie_store))
+	m.Use(sessions.Sessions(cookie_store_name, store))
 	//--- /session --------------------------------------------------------
 
 	//--- render  ---------------------------------------------------------
