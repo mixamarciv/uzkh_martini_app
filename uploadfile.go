@@ -74,7 +74,7 @@ func http_post_uploadfile(uf UploadForm) string {
 
 		im, _, err := image.DecodeConfig(file)
 		if err != nil {
-			return "{\"error\":\"ОШИБКА к загрузке доступны только фото формата JPEG\"}"
+			return "{\"error\":\"ОШИБКА к загрузке доступны только изображения формата JPEG\"}"
 		}
 		LogPrintErrAndExit("ERROR image.DecodeConfig", err)
 

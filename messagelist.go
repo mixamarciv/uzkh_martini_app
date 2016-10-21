@@ -32,7 +32,7 @@ func load_posts_arr(page int) []map[string]interface{} {
 	ret := make([]map[string]interface{}, 0)
 	query := "SELECT uuid,type,userdata,text,postdatet,postdate,"
 	query += "(SELECT COUNT(*) FROM timage t WHERE t.uuid_post=p.uuid), "
-	query += "(SELECT COUNT(*) FROM tcomment t WHERE t.uuid_post=p.uuid) "
+	query += "(SELECT COUNT(*) FROM tcomment t WHERE t.uuid_post=p.uuid AND t.isactive=1) "
 	query += " FROM tpost p WHERE isactive=1 ORDER BY postdatet DESC"
 	rows, err := db.Query(query)
 	if err != nil {
